@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+<parent>
+  <groupId>com.cjx</groupId>
+  <artifactId>business-platform</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <relativePath>../../pom.xml</relativePath>
+</parent>
+
+<artifactId>common-security</artifactId>
+<packaging>jar</packaging>
+
+<dependencies>
+  <dependency>
+    <groupId>com.cjx</groupId>
+    <artifactId>common-core</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>cn.dev33</groupId>
+    <artifactId>sa-token-spring-boot3-starter</artifactId>
+  </dependency>
+</dependencies>
+</project>

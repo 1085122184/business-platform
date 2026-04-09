@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="">
+  <modelVersion>4.0.0</modelVersion>
+<parent>
+  <groupId>com.cjx</groupId>
+  <artifactId>business-platform</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <relativePath>../../pom.xml</relativePath>
+</parent>
+
+<artifactId>common-redis</artifactId>
+    <packaging>jar</packaging>
+    
+    <dependencies>
+        <dependency>
+            <groupId>com.cjx</groupId>
+            <artifactId>common-core</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+    </dependencies>
+</project>

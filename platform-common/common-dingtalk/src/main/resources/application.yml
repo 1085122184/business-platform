@@ -1,0 +1,14 @@
+ding-talk:
+  # 企业ID（在钉钉开放平台 - 应用开发 - 企业内部开发获取）
+  corp-id: ding1234567890abcdef
+
+  # 移动端应用配置
+  agent-id: 1234567890
+  app-secret: your_app_secret_here
+
+  # 扫码登录应用配置（在钉钉开放平台 - 应用开发 - 登录获取）
+  app-id: dingoa1234567890abcdef
+  scan-app-secret: your_scan_app_secret_here
+
+  # 钉钉API地址
+  api-url: https://oapi.dingtalk.com

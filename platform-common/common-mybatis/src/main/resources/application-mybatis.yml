@@ -1,0 +1,66 @@
+## MyBatis Plus配置
+#mybatis-plus:
+#  # Mapper XML文件路径
+#  mapper-locations: classpath*:/mapper/**/*.xml
+#  # 实体类包路径
+#  type-aliases-package: com.company.*.*.entity
+#  # 配置
+#  configuration:
+#    # 驼峰转下划线
+#    map-underscore-to-camel-case: true
+#    # 日志实现
+#    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+#    # 二级缓存
+#    cache-enabled: true
+#    # 延迟加载
+#    lazy-loading-enabled: true
+#    # 积极延迟加载
+#    aggressive-lazy-loading: false
+#    # 返回map时null值的处理
+#    call-setters-on-nulls: true
+#  # 全局配置
+#  global-config:
+#    # 是否打印Banner
+#    banner: false
+#    db-config:
+#      # 主键策略：雪花算法
+#      id-type: ASSIGN_ID
+#      # 逻辑删除字段
+#      logic-delete-field: deleted
+#      # 逻辑删除值
+#      logic-delete-value: 1
+#      # 逻辑未删除值
+#      logic-not-delete-value: 0
+#      # 表名前缀
+#      # table-prefix: t_
+#      # 字段验证策略
+#      insert-strategy: NOT_EMPTY
+#      update-strategy: NOT_EMPTY
+#      select-strategy: NOT_EMPTY
+## 动态数据源配置（多数据源场景）
+#spring:
+#  datasource:
+#    dynamic:
+#      # 是否启用严格模式（默认false）
+#      strict: false
+#      # 设置默认的数据源或者数据源组
+#      primary: master
+#      datasource:
+#        # 主库
+#        master:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://localhost:3306/business_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+#          username: root
+#          password: root123456
+#        # 从库1
+#        slave1:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://localhost:3307/business_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+#          username: root
+#          password: root123456
+#        # 从库2
+#        slave2:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://localhost:3308/business_platform?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+#          username: root
+#          password: root123456
