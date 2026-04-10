@@ -3,8 +3,11 @@ package com.cjx.decision.service.impl;
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.decision.annotation.AutoWarmUp;
+import com.cjx.decision.constant.CompanyCodeConstant;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
+import com.cjx.decision.enums.MetricType;
+import com.cjx.decision.enums.RegionCode;
 import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 import com.cjx.decision.projection.frorcl.SalesSummary;
@@ -112,14 +115,11 @@ public class SalesServiceImpl implements SalesService {
 
     @Override
     public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String targetDate) {
-        if("国内".equals(region)){
-            region = "10";
-        }else {
-            region = "20";
-        }
+        // 使用RegionCode枚举将区域名称转换为代码
+        RegionCode regionCode = RegionCode.fromCode(region);
+        String finalRegion = regionCode.getCode();
         String key = "customerTransaction:" + targetDate;
-        String finalRegion = region;
-        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findCustomerTransaction(finalRegion,code,targetDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findCustomerTransaction(finalRegion, code, targetDate));
     }
 
 
@@ -142,22 +142,25 @@ public class SalesServiceImpl implements SalesService {
                 .collect(Collectors.toMap(SalesSummary::getCompanyName, b -> b, (a, b) -> a));
         Map<String, SalesSummary> amountMap = amountBudget.stream()
                 .collect(Collectors.toMap(SalesSummary::getCompanyName, b -> b, (a, b) -> a));
+        
+        MetricType metricType = MetricType.fromCode(type);
+        
         result = salesAll.stream()
                 .map(s -> {
                     BigDecimal actualValue = new BigDecimal(1);
                     BigDecimal targetValue = new BigDecimal(1);
                     SalesSummary b = null;
-                    if("volume".equals(type)){
+                    if (metricType == MetricType.VOLUME) {
                         b = volumeMap.get(s.getCompanyName());
                         if (b != null) {
-                            actualValue = BigDecimal.valueOf(s.getTotalSales()).multiply(multiplier);
-                            targetValue = BigDecimal.valueOf(b.getTotalCountBudget()).multiply(multiplier);
+                            actualValue = s.getTotalSales().multiply(multiplier);
+                            targetValue = b.getTotalCountBudget().multiply(multiplier);
                         }
-                    }else if("amount".equals(type)){
+                    } else {
                         b = amountMap.get(s.getCompanyName());
                         if (b != null) {
-                            actualValue = BigDecimal.valueOf(s.getTotalAmount()).multiply(multiplier);
-                            targetValue = BigDecimal.valueOf(b.getTotalAmountBudget()).multiply(multiplier);
+                            actualValue = s.getTotalAmount().multiply(multiplier);
+                            targetValue = b.getTotalAmountBudget().multiply(multiplier);
                         }
                     }
 
@@ -210,51 +213,27 @@ public class SalesServiceImpl implements SalesService {
 
     @Override
     public List<SalesSummary> getProductDeepMonth(String companyName, String productCode,LocalDate date) {
-        if ("绿冷".equals(companyName)){
-            companyName = "3001";
-        }else if ("有机硅".equals(companyName)){
-            companyName = "1400";
-        }else if ("氟硅".equals(companyName)){
-            companyName = "1301";
-        }else if ("高分子".equals(companyName)){
-            companyName = "1201";
-        }
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_MONTH.getOrDefault(companyName, companyName);
         return salesRepository.getProductDeepMonth(companyName,productCode,date);
     }
 
     @Override
     public List<SalesSummary> getProductDeepYear(String companyName, String productCode,LocalDate date) {
-        if ("绿冷".equals(companyName)){
-            companyName = "3000";
-        }else if ("有机硅".equals(companyName)){
-            companyName = "1400";
-        }else if ("氟硅".equals(companyName)){
-            companyName = "1300";
-        }else if ("高分子".equals(companyName)){
-            companyName = "1200";
-        }
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_YEAR.getOrDefault(companyName, companyName);
         return salesRepository.getProductDeepYear(companyName,productCode,date);
     }
 
     @Override
     public List<SalesSummary> getProductCustomer(String companyName, String productCode,LocalDate date) {
-        if ("绿冷".equals(companyName)){
-            companyName = "3000";
-        }else if ("有机硅".equals(companyName)){
-            companyName = "1400";
-        }else if ("氟硅".equals(companyName)){
-            companyName = "1300";
-        }else if ("高分子".equals(companyName)){
-            companyName = "1200";
-        }
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_YEAR.getOrDefault(companyName, companyName);
         return salesRepository.getProductCustomer(companyName,productCode,date);
     }
 
 
     @AutoWarmUp
     public void warmUpComplexData(LocalDate targetDate) {
-        this.findSaleDetails("volume", targetDate);
-        this.findSaleDetails("amount", targetDate);
+        this.findSaleDetails(MetricType.VOLUME.getCode(), targetDate);
+        this.findSaleDetails(MetricType.AMOUNT.getCode(), targetDate);
         List<String> companies = Arrays.asList("3001", "1400", "1301", "1201");
         for (String company : companies) {
             this.findSummaryByCompany(targetDate, company);

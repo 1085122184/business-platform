@@ -1,20 +1,21 @@
 package com.cjx.decision.repository.frorcl;
 
 import com.cjx.decision.projection.frorcl.OrderDetail;
-import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
+ * 只读Repository，用于查询订单相关数据。
+ * 仅提供查询方法，不支持增删改操作。
+ *
  * @author cuijixu
  */
-@Repository
-public interface OrderRepository extends JpaRepository<VLvlengRixiaoshou, Long> {
+@org.springframework.stereotype.Repository
+public interface OrderRepository extends Repository<VLvlengRixiaoshou, Long> {
 
     @Query(value = """
   SELECT 

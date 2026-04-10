@@ -2,10 +2,12 @@ package com.cjx.decision.dto.dashboard;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class RawCollection {
     private String collectionAmount;
-    private Double collectionRate;
-    private Double gapValue;
-    private Double monthGoal;
+    private BigDecimal collectionRate;
+    private BigDecimal gapValue;
+    private BigDecimal monthGoal;
 }

@@ -4,19 +4,21 @@ import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
+ * 只读Repository，用于查询销售相关数据。
+ * 仅提供查询方法，不支持增删改操作。
+ *
  * @author cuijixu
  */
-@Repository
-public interface SalesRepository extends JpaRepository<VLvlengRixiaoshou, Long> {
+@org.springframework.stereotype.Repository
+public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
 
 
     @Query(value = """
@@ -32,13 +34,6 @@ public interface SalesRepository extends JpaRepository<VLvlengRixiaoshou, Long> 
       WHERE TO_DATE(过账日期, 'YYYY-MM-DD') >= TRUNC(TRUNC(:targetDate) - 1, 'MM') AND TO_DATE(过账日期, 'YYYY-MM-DD') < TRUNC(:targetDate) AND 销量 <> 0
       """, nativeQuery = true)
     SalesSummary findSummaryToToday(@Param("targetDate") LocalDate targetDate);
-
-//    @Query(value = """
-//      SELECT 过账日期,ROUND(SUM(NVL(销量, 0)), 2) AS totalSales,ROUND(SUM(NVL(金额, 0)), 2) AS totalAmount
-//      FROM v_sales_detail_all
-//      WHERE 工厂 = :company and TO_DATE(过账日期, 'YYYY-MM-DD') >= TRUNC(TRUNC(:targetDate) - 1, 'MM') AND TO_DATE(过账日期, 'YYYY-MM-DD') < TRUNC(:targetDate) GROUP BY 过账日期 ORDER BY 过账日期
-//      """, nativeQuery = true)
-//    List<SalesSummary> findSummaryByCompany(@Param("targetDate") LocalDate targetDate,@Param("company") String company);
 
     @Query(value = """
       WITH date_range AS (
@@ -98,20 +93,6 @@ public interface SalesRepository extends JpaRepository<VLvlengRixiaoshou, Long> 
             """, nativeQuery = true)
     List<SalesSummary> findTrendsAll(@Param("startDate") String startDate,@Param("endDate") String endDate);
 
-//    @Query(value = """
-//      SELECT 工厂,
-//            CASE 渠道
-//                    WHEN '10' THEN '国内'
-//                    WHEN '20' THEN '国外'
-//                  END AS region,
-//            物料组 AS productCode,物料组描述 AS productName,TO_CHAR(TO_DATE(过账日期, 'YYYY-MM-DD'), 'YYYY-MM') AS latestDate,
-//            ROUND(SUM(NVL(销量, 0)), 2) AS totalSales,
-//            ROUND(SUM(NVL(金额, 0)), 2)  AS totalAmount,
-//            ROUND(CASE WHEN SUM(NVL(销量, 0)) = 0 THEN 0 ELSE SUM(NVL(金额, 0)) / SUM(NVL(销量, 0))*10000 END,2) AS price
-//            FROM v_sales_detail_all
-//            WHERE  物料组 = :productCode AND 渠道 = :region AND 物料组描述 <> '无价值物料' AND 销售主产 = '1' AND 过账日期 BETWEEN :startDate AND :endDate
-//            GROUP BY 工厂,渠道,物料组,物料组描述,TO_CHAR(TO_DATE(过账日期, 'YYYY-MM-DD'), 'YYYY-MM') ORDER BY TO_CHAR(TO_DATE(过账日期, 'YYYY-MM-DD'), 'YYYY-MM')
-//      """, nativeQuery = true)
     @Query(value = """
        SELECT 公司编码,渠道 AS region,
                   物料组 AS productCode,物料组描述 AS productName,TO_CHAR(TO_DATE(日期, 'YYYY-MM-DD'), 'YYYY-MM') AS latestDate,

@@ -7,6 +7,7 @@ import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.decision.dto.ai.AiDiagnosisDTO;
 import com.cjx.decision.service.DashboardAiService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ import java.util.Map;
 /**
  * @author cuijixu
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardAiServiceImpl implements DashboardAiService {
@@ -29,7 +31,7 @@ public class DashboardAiServiceImpl implements DashboardAiService {
         if ("sales".equals(bizType)){
             aiDiagnosisDTO = getAiDiagnosisDTO(companyName, value, target, unit, localDate);
         }else {
-
+            log.warn("不支持的业务类型: {}, 默认使用sales逻辑", bizType);
         }
         return aiDiagnosisDTO;
     }

@@ -20,7 +20,7 @@ public interface SalesService {
 
     SalesSummary findCountBudget(LocalDate date);
 
-    SalesSummary findAmountBudget(LocalDate dat);
+    SalesSummary findAmountBudget(LocalDate date);
 
     SalesSummary findMonthOrder(LocalDate targetDate);
 

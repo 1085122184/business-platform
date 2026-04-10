@@ -9,5 +9,5 @@ public interface CollectionDetail {
 
     String getSN();
 
-    String yesterday();
+    String getYesterday();
 }

@@ -7,21 +7,21 @@ import java.math.BigDecimal;
  * @author CUIJIXU
  */
 public interface SalesSummary {
-    Double getTotalSales(); // 对应 SQL 中的 总销量
-    Double getTotalAmount(); // 对应 SQL 中的 总金额
+    BigDecimal getTotalSales(); // 对应 SQL 中的 总销量
+    BigDecimal getTotalAmount(); // 对应 SQL 中的 总金额
 
     BigDecimal getPrice();
 
-    Double getTotalCountBudget();//总销量预算
+    BigDecimal getTotalCountBudget();//总销量预算
 
-    Double getTotalAmountBudget();//总销售额预算
+    BigDecimal getTotalAmountBudget();//总销售额预算
 
     String getCompanyName();//公司名称
 
     String getProductName();//产品
 
     String getProductCode();//产品
-    Double getCollection();//回款
+    BigDecimal getCollection();//回款
     String getLatestDate();
 
     String getRegion();

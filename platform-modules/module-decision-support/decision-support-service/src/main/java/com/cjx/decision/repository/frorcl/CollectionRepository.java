@@ -2,19 +2,21 @@ package com.cjx.decision.repository.frorcl;
 
 import com.cjx.decision.projection.frorcl.*;
 import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
 
 /**
+ * 只读Repository，用于查询回款相关数据。
+ * 仅提供查询方法，不支持增删改操作。
+ *
  * @author cuijixu
  */
-@Repository
-public interface CollectionRepository extends JpaRepository<VLvlengRixiaoshou, Long> {
+@org.springframework.stereotype.Repository
+public interface CollectionRepository extends Repository<VLvlengRixiaoshou, Long> {
 
     @Query(value = """
       SELECT
@@ -31,8 +33,8 @@ public interface CollectionRepository extends JpaRepository<VLvlengRixiaoshou, L
     List<CollectionDetail> findCollectionCompanies(@Param("targetDate") String targetDate);
 
     @Query(value = """
-      SELECT 
-      COMPANY AS companyName,PLANACCOUNTS AS planValue,CHECKYEAR ||'-'|| CHECKMONTH AS yesterday  
+      SELECT
+      COMPANY AS companyName,PLANACCOUNTS AS planValue,CHECKYEAR ||'-'|| CHECKMONTH AS yesterday
       FROM SO_PLANACCOUNT
       WHERE CHECKYEAR ||'-'|| CHECKMONTH =  :targetDate
       """, nativeQuery = true)

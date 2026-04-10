@@ -3,8 +3,8 @@ package com.cjx.decision.config;
 import com.cjx.decision.config.properties.FrorclDataSourceProperties;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -27,7 +27,7 @@ import java.util.Map;
  * 管理secondary数据库的连接和JPA配置
  * @author Administrator
  */
-@Data
+@Slf4j
 @Configuration
 @EnableTransactionManagement
 @EnableConfigurationProperties
@@ -46,11 +46,10 @@ public class FrorclDataSourceConfig {
     @Primary
     @Bean(name = "frorclDataSource")
     public DataSource frorclDataSource() {
-        System.out.println("========== Creating frorcl DataSource ==========");
-        System.out.println("JDBC URL: " + sourceProperties.getJdbcUrl());
-        System.out.println("Username: " + sourceProperties.getUsername());
-        System.out.println("Driver: " + sourceProperties.getDriverClassName());
-        System.out.println("===============================================");
+        log.info("========== Creating frorcl DataSource ==========");
+        log.info("JDBC URL: {}", sourceProperties.getJdbcUrl());
+        log.info("Driver: {}", sourceProperties.getDriverClassName());
+        log.info("===============================================");
 
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl(sourceProperties.getJdbcUrl());
