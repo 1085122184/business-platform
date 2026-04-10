@@ -38,7 +38,6 @@ public class StrategyExecutor {
      * @param context 执行上下文
      * @return 执行结果
      */
-//    @Transactional(rollbackFor = Exception.class)
     public StrategyResult<?> execute(String strategyKey, StrategyContext context) {
 
         // 参数校验
@@ -51,15 +50,10 @@ public class StrategyExecutor {
         StrategyResult<?> result;
 
         try {
-//            log.info("[策略执行开始] strategyKey={}, userId={}, traceId={}",
-//                    strategyKey, context.getUserId(), context.getTraceId());
-            log.info("[策略执行开始] strategyKey={},traceId={}",strategyKey,context.getTraceId());
+            log.info("[策略执行开始] strategyKey={}, traceId={}", strategyKey, context.getTraceId());
 
             // 获取策略元数据
             StrategyMetadata metadata = strategyRegistry.getMetadata(strategyKey);
-
-            // 前置校验（权限、参数等）
-//            strategyValidator.validate(metadata, context); todo
 
             // 执行策略
             result = doExecute(metadata, context);
@@ -93,7 +87,6 @@ public class StrategyExecutor {
      * @param context 执行上下文
      * @return CompletableFuture
      */
-
     public CompletableFuture<StrategyResult<?>> executeAsync(String strategyKey, StrategyContext context) {
         return CompletableFuture.supplyAsync(() -> execute(strategyKey, context));
     }
@@ -101,9 +94,7 @@ public class StrategyExecutor {
     /**
      * 执行策略的核心逻辑
      */
-
     private StrategyResult<?> doExecute(StrategyMetadata metadata, StrategyContext context) throws Exception {
-
         // 获取Bean实例
         Object bean = strategyRegistry.getBean(metadata.getBeanName());
         if (bean == null) {
@@ -112,22 +103,19 @@ public class StrategyExecutor {
         }
         // 获取目标方法
         Method method = metadata.getTargetMethod();
-        Object result = null;
         // 调用方法
         try {
-            result = method.invoke(bean, context);
+            Object result = method.invoke(bean, context);
             // 处理返回值
             if (result instanceof StrategyResult) {
                 return (StrategyResult<?>) result;
             } else {
-                // 如果返回值不是StrategyResult，自动包装
                 return StrategyResult.success(result);
             }
         } catch (InvocationTargetException e) {
             Throwable realError = e.getCause();
-            System.out.println(realError.getClass().getName());
-            System.out.println(realError.getMessage()); // 真正的错误信息
-            return StrategyResult.failure(realError.getClass().getName(),realError.getMessage());
+            log.error("策略执行异常: errorType={}, message={}", realError.getClass().getName(), realError.getMessage());
+            return StrategyResult.failure(realError.getClass().getName(), realError.getMessage());
         }
     }
 

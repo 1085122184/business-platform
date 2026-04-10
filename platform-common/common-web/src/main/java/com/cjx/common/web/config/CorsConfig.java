@@ -25,8 +25,8 @@ public class CorsConfig {
         // 允许所有请求方法
         config.addAllowedMethod("*");
 
-        // 允许携带凭证
-        config.setAllowCredentials(true);
+        // 不使用凭证，避免与allowedOriginPattern="*"冲突
+        config.setAllowCredentials(false);
 
         // 预检请求的有效期(秒)
         config.setMaxAge(3600L);

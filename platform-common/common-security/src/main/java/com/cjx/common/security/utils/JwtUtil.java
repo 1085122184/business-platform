@@ -1,10 +1,13 @@
 package com.cjx.common.security.utils;
 
+import com.cjx.common.security.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -18,25 +21,22 @@ import java.util.Map;
  * 与Hutool区别:
  * - Hutool的JWTUtil较为基础
  * - 本类提供完整的Token生成、解析、刷新功能
+ * - 密钥和过期时间通过配置文件管理
  *
  * @author system
  */
 @Slf4j
+@Component
+@RequiredArgsConstructor
 public class JwtUtil {
-    /** 密钥(生产环境应该放在配置文件中) */
-    private static final String SECRET_KEY = "your-256-bit-secret-key-here-must-be-long-enough-for-hs256";
 
-    /** Token有效期(7天) */
-    private static final long EXPIRATION = 7 * 24 * 60 * 60 * 1000L;
-
-    /** Token刷新期(3天内可刷新) */
-    private static final long REFRESH_TIME = 3 * 24 * 60 * 60 * 1000L;
+    private final JwtConfig jwtConfig;
 
     /**
      * 生成密钥
      */
-    private static SecretKey getSecretKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+    private SecretKey getSecretKey() {
+        return Keys.hmacShaKeyFor(jwtConfig.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -44,13 +44,13 @@ public class JwtUtil {
      * @param userId 用户ID
      * @param username 用户名
      */
-    public static String generateToken(Long userId, String username) {
+    public String generateToken(Long userId, String username) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
 
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + EXPIRATION);
+        Date expiration = new Date(now.getTime() + jwtConfig.getExpiration());
 
         return Jwts.builder()
                 .claims(claims)
@@ -64,7 +64,7 @@ public class JwtUtil {
     /**
      * 从Token中获取Claims
      */
-    public static Claims getClaimsFromToken(String token) {
+    public Claims getClaimsFromToken(String token) {
         try {
             return Jwts.parser()
                     .verifyWith(getSecretKey())
@@ -80,7 +80,7 @@ public class JwtUtil {
     /**
      * 从Token中获取用户ID
      */
-    public static Long getUserIdFromToken(String token) {
+    public Long getUserIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         if (claims == null) {
             return null;
@@ -95,7 +95,7 @@ public class JwtUtil {
     /**
      * 从Token中获取用户名
      */
-    public static String getUsernameFromToken(String token) {
+    public String getUsernameFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims != null ? claims.getSubject() : null;
     }
@@ -103,7 +103,7 @@ public class JwtUtil {
     /**
      * 验证Token是否有效
      */
-    public static boolean validateToken(String token) {
+    public boolean validateToken(String token) {
         try {
             Claims claims = getClaimsFromToken(token);
             if (claims == null) {
@@ -119,22 +119,22 @@ public class JwtUtil {
 
     /**
      * 判断Token是否需要刷新
-     * 距离过期时间小于3天时需要刷新
+     * 距离过期时间小于配置时间时需要刷新
      */
-    public static boolean needRefresh(String token) {
+    public boolean needRefresh(String token) {
         Claims claims = getClaimsFromToken(token);
         if (claims == null) {
             return false;
         }
         Date expiration = claims.getExpiration();
         long remainTime = expiration.getTime() - System.currentTimeMillis();
-        return remainTime > 0 && remainTime < REFRESH_TIME;
+        return remainTime > 0 && remainTime < jwtConfig.getRefreshTime();
     }
 
     /**
      * 刷新Token
      */
-    public static String refreshToken(String token) {
+    public String refreshToken(String token) {
         Claims claims = getClaimsFromToken(token);
         if (claims == null) {
             return null;
@@ -149,7 +149,7 @@ public class JwtUtil {
     /**
      * 从Token中获取过期时间
      */
-    public static Date getExpirationFromToken(String token) {
+    public Date getExpirationFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims != null ? claims.getExpiration() : null;
     }

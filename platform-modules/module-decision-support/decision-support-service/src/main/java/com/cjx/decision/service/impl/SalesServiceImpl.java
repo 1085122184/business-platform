@@ -1,7 +1,7 @@
 package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
-import com.cjx.common.core.utils.CaffeineUtil;
+import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SalesServiceImpl implements SalesService {
     private final SalesRepository salesRepository;
-    private final CaffeineUtil caffeineUtil;
+    private final CaffeineCacheService caffeineCacheService;
 
     @AutoWarmUp
     @Override
@@ -41,14 +41,14 @@ public class SalesServiceImpl implements SalesService {
         String yesterday = date.minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "todaySalesList:" + date;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryByDate(yesterday),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryByDate(yesterday),SalesSummary.class);
     }
 
     @AutoWarmUp
     @Override
     public SalesSummary findSummaryToToday(LocalDate date) {
         String key = "totalSalesList:" + date;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryToToday(date),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryToToday(date),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -57,7 +57,7 @@ public class SalesServiceImpl implements SalesService {
         String yesterday = date.minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM"));
         String key = "countBudget:" + date;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCountBudget(yesterday),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCountBudget(yesterday),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -66,7 +66,7 @@ public class SalesServiceImpl implements SalesService {
         String yesterday = date.minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM"));
         String key = "amountBudget:" + date;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findAmountBudget(yesterday),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findAmountBudget(yesterday),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -77,7 +77,7 @@ public class SalesServiceImpl implements SalesService {
         String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.lastDayOfMonth())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "monthOrder:" + targetDate;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findMonthOrder(thisMonth,lastMonth,targetDate),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findMonthOrder(thisMonth,lastMonth,targetDate),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -88,7 +88,7 @@ public class SalesServiceImpl implements SalesService {
         String key = "yearOrder:" + targetDate;
         String yesterday = targetDate.minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findYearOrder(thisYear,yesterday),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findYearOrder(thisYear,yesterday),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -96,7 +96,7 @@ public class SalesServiceImpl implements SalesService {
     public SalesSummary findCollection(LocalDate date) {
         LocalDate yesterday = date.minusDays(1);
         String key = "collection:" + date;
-        return caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCollection(yesterday),SalesSummary.class);
+        return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCollection(yesterday),SalesSummary.class);
     }
 
     @AutoWarmUp
@@ -107,7 +107,7 @@ public class SalesServiceImpl implements SalesService {
         String endDate = date.minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "priceDiff:" + date;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findPriceDiff(startDate,endDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findPriceDiff(startDate,endDate));
     }
 
     @Override
@@ -119,14 +119,14 @@ public class SalesServiceImpl implements SalesService {
         }
         String key = "customerTransaction:" + targetDate;
         String finalRegion = region;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findCustomerTransaction(finalRegion,code,targetDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findCustomerTransaction(finalRegion,code,targetDate));
     }
 
 
     @Override
     public List<CompanyMetricDTO> findSaleDetails(String type, LocalDate targetDate) {
         String key = "saleDetails:"+ type + ":" + targetDate;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> this.getCompanyMetricDTOS(type,targetDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> this.getCompanyMetricDTOS(type,targetDate));
     }
 
     @NotNull
@@ -174,19 +174,19 @@ public class SalesServiceImpl implements SalesService {
     @Override
     public List<SalesSummary> findSummaryByCompany(LocalDate targetDate, String company) {
         String key = "companySummary:" + company + ":" + targetDate;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryByCompany(targetDate,company));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryByCompany(targetDate,company));
     }
 
     @Override
     public List<SalesSummary> findDetailsByCompany(LocalDate targetDate, String company) {
         String key = "companyDetails:" + company + ":" + targetDate;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findDetailsByCompany(targetDate,company));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findDetailsByCompany(targetDate,company));
     }
 
     @Override
     public List<SalesSummary> findTrendsToday(String targetDate) {
         String key = "trendsToday:" + targetDate;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsToday(targetDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsToday(targetDate));
     }
 
     @AutoWarmUp
@@ -195,7 +195,7 @@ public class SalesServiceImpl implements SalesService {
         String startDate = LocalDate.now().minusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "trendsAll:" + endDate;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsAll(startDate,endDate));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsAll(startDate,endDate));
     }
 
     @Override
@@ -205,7 +205,7 @@ public class SalesServiceImpl implements SalesService {
         String startDate = firstDayOfYear.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "trendsYear:" + endDate + ":" + productCode+"_"+region;
-        return caffeineUtil.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsYear(startDate,endDate,productCode,region));
+        return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsYear(startDate,endDate,productCode,region));
     }
 
     @Override

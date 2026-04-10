@@ -119,10 +119,8 @@ public class IpUtil {
 
     /**
      * 获取IP归属地（需要集成第三方IP库，如ip2region）
-     * 这里只是示例接口
      */
     public static String getIpLocation(String ip) {
-        // TODO: 集成IP归属地查询
         return "未知";
     }
 }

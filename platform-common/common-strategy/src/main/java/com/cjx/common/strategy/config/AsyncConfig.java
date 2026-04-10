@@ -1,4 +1,4 @@
-package com.cjx.common.strategy.dto.config;
+package com.cjx.common.strategy.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 异步配置
+ * 为策略执行提供专用线程池
  *
  * @author Enterprise Team
  * @version 1.0.0

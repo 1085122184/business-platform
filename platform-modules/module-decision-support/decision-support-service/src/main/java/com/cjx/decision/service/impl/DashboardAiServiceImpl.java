@@ -3,7 +3,7 @@ package com.cjx.decision.service.impl;
 import com.cjx.common.ai.service.AiChatService;
 import com.cjx.common.ai.util.PromptUtils;
 import com.cjx.common.core.enums.CacheType;
-import com.cjx.common.core.utils.CaffeineUtil;
+import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.decision.dto.ai.AiDiagnosisDTO;
 import com.cjx.decision.service.DashboardAiService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ import java.util.Map;
 public class DashboardAiServiceImpl implements DashboardAiService {
     private final AiChatService aiChatService;
 
-    private final CaffeineUtil caffeineUtil;
+    private final CaffeineCacheService caffeineCacheService;
     @Override
     public AiDiagnosisDTO generateDiagnosis(String companyName, BigDecimal value, BigDecimal target, String unit, LocalDate localDate,String bizType) {
         AiDiagnosisDTO aiDiagnosisDTO = new AiDiagnosisDTO();
@@ -104,7 +104,7 @@ public class DashboardAiServiceImpl implements DashboardAiService {
 
         String finalPrompt = PromptUtils.render(promptTemplate, vars);
         String key = "company_diagnosis:"+ companyName + ":" + date+":" + unit;
-        AiDiagnosisDTO aiDiagnosisDTO = caffeineUtil.getOrLoad(CacheType.TODAY_DATA,key,k ->aiChatService.chatAs(finalPrompt, AiDiagnosisDTO.class),AiDiagnosisDTO.class);
+        AiDiagnosisDTO aiDiagnosisDTO = caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key,k ->aiChatService.chatAs(finalPrompt, AiDiagnosisDTO.class),AiDiagnosisDTO.class);
         return aiDiagnosisDTO;
     }
 }

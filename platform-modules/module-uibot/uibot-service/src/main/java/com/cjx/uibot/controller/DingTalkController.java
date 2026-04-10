@@ -2,6 +2,7 @@ package com.cjx.uibot.controller;
 
 import cn.hutool.json.JSONObject;
 import com.cjx.common.core.result.Result;
+import com.cjx.common.dingtalk.dto.DingTalkUserInfo;
 import com.cjx.common.dingtalk.utils.DingTalkUtil;
 import com.cjx.uibot.UserService;
 import com.cjx.uibot.api.dto.LoginRequest;
@@ -56,15 +57,15 @@ public class DingTalkController {
             }
 
             // 1. 通过authCode获取钉钉用户信息
-            JSONObject dingUserInfo = dingTalkUtil.getUserInfoByAuthCode(authCode);
-            String dingUserId = dingUserInfo.getStr("userid");
+            DingTalkUserInfo dingUserInfo = dingTalkUtil.getUserInfoByAuthCode(authCode);
+            String dingUserId = dingUserInfo.getUserId();
 
             log.info("钉钉用户ID: {}", dingUserId);
 
             // 2. 获取用户详细信息
-            JSONObject userDetail = dingTalkUtil.getUserDetail(dingUserId);
-            String mobile = userDetail.getStr("mobile");
-            String name = userDetail.getStr("name");
+            DingTalkUserInfo userDetail = dingTalkUtil.getUserDetail(dingUserId);
+            String mobile = userDetail.getMobile();
+            String name = userDetail.getName();
 
             log.info("钉钉用户信息: mobile={}, name={}", mobile, name);
 

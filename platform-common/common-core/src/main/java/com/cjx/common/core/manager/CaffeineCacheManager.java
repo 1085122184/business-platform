@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -63,5 +64,21 @@ public class CaffeineCacheManager {
      */
     public CacheStats getStats(CacheType cacheType) {
         return getCache(cacheType).stats();
+    }
+
+    /**
+     * 应用关闭时清理所有缓存
+     */
+    @PreDestroy
+    public void destroy() {
+        for (Map.Entry<String, Cache<String, Object>> entry : cacheMap.entrySet()) {
+            try {
+                entry.getValue().invalidateAll();
+            } catch (Exception e) {
+                log.warn("清理缓存失败: {}", entry.getKey(), e);
+            }
+        }
+        cacheMap.clear();
+        log.info("[CacheManager] 所有缓存已清理");
     }
 }

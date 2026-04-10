@@ -1,5 +1,6 @@
 package com.cjx.common.core.manager;
 
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -22,9 +23,14 @@ public class MapCacheManager {
      */
     private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
+    /**
+     * 定时清理任务的调度器
+     */
+    private final ScheduledExecutorService scheduler;
+
     public MapCacheManager() {
         // 每分钟清理一次过期缓存
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r, "cache-cleaner");
             thread.setDaemon(true);
             return thread;
@@ -186,6 +192,26 @@ public class MapCacheManager {
         if (cleanedCount > 0) {
             log.info("清理过期缓存: 清理数量={}, 剩余数量={}", cleanedCount, cache.size());
         }
+    }
+
+    /**
+     * 应用关闭时清理资源
+     */
+    @PreDestroy
+    public void destroy() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdown();
+            try {
+                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    scheduler.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                scheduler.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            log.info("MapCacheManager已关闭");
+        }
+        cache.clear();
     }
 
     /**

@@ -12,14 +12,19 @@ import java.util.List;
  * 基础Repository实现
  * 扩展JPA的默认实现，添加批量操作优化
  *
- * @param <T> 实体类型
+ * @param <T> 实体类型，必须继承自BaseEntity
  * @author company
  * @date 2024-01-20
  */
-public class BaseRepositoryImpl<T extends BaseEntity> extends SimpleJpaRepository<T, Long> {
+public class BaseRepositoryImpl<T extends BaseEntity> extends SimpleJpaRepository<T, String> {
     private final EntityManager entityManager;
 
-    public BaseRepositoryImpl(JpaEntityInformation<T, Long> entityInformation,
+    /**
+     * 构造函数
+     * @param entityInformation 实体信息
+     * @param entityManager 实体管理器
+     */
+    public BaseRepositoryImpl(JpaEntityInformation<T, String> entityInformation,
                               EntityManager entityManager) {
         super(entityInformation, entityManager);
         this.entityManager = entityManager;

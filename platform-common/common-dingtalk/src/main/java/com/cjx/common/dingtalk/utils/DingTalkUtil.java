@@ -2,13 +2,14 @@ package com.cjx.common.dingtalk.utils;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.crypto.digest.DigestUtil;
-import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.cjx.common.core.manager.MapCacheManager;
 import com.cjx.common.core.utils.OkHttpUtil;
 import com.cjx.common.dingtalk.config.DingTalkCacheConfig;
 import com.cjx.common.dingtalk.config.DingTalkConfig;
+import com.cjx.common.dingtalk.dto.DingTalkApiResponse;
+import com.cjx.common.dingtalk.dto.DingTalkDeptInfo;
+import com.cjx.common.dingtalk.dto.DingTalkMessageResult;
+import com.cjx.common.dingtalk.dto.DingTalkUserInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.util.Map;
 
 /**
  * 钉钉工具类
+ * 提供企业内部应用的AccessToken管理、消息发送、用户管理、部门管理等功能
  *
  * @author claude
  */
@@ -34,8 +36,12 @@ public class DingTalkUtil {
     private final DingTalkConfig dingTalkConfig;
     private final MapCacheManager cacheManager;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    // ==================== Token管理 ====================
+
     /**
      * 获取企业内部应用的access_token（带缓存）
+     * @return access_token
      */
     public String getAccessToken() throws Exception {
         return cacheManager.getOrLoad(
@@ -101,14 +107,11 @@ public class DingTalkUtil {
         throw new RuntimeException("获取jsapi_ticket失败: " + result.get("errmsg"));
     }
 
-
     /**
      * 生成JSAPI签名
      */
-    public Map<String, String> generateJsApiSignature(String url)  throws Exception {
-
+    public Map<String, String> generateJsApiSignature(String url) throws Exception {
         String ticket = getJsApiTicket();
-        // 生成签名
         String nonceStr = IdUtil.fastSimpleUUID();
         long timeStamp = System.currentTimeMillis();
 
@@ -129,12 +132,13 @@ public class DingTalkUtil {
         return map;
     }
 
-
-
     // ==================== 消息发送 ====================
 
     /**
      * 发送工作通知消息
+     * @param userIdList 用户ID列表
+     * @param msg 消息内容
+     * @return 响应JSON字符串
      */
     public String sendWorkMessage(List<String> userIdList, Object msg) throws Exception {
         String accessToken = getAccessToken();
@@ -149,6 +153,9 @@ public class DingTalkUtil {
 
     /**
      * 发送文本消息
+     * @param userIdList 用户ID列表
+     * @param content 文本内容
+     * @return 响应JSON字符串
      */
     public String sendTextMessage(List<String> userIdList, String content) throws Exception {
         Map<String, Object> msg = new HashMap<>();
@@ -162,6 +169,10 @@ public class DingTalkUtil {
 
     /**
      * 发送Markdown消息
+     * @param userIdList 用户ID列表
+     * @param title 标题
+     * @param text 内容
+     * @return 响应JSON字符串
      */
     public String sendMarkdownMessage(List<String> userIdList, String title, String text) throws Exception {
         Map<String, Object> msg = new HashMap<>();
@@ -176,6 +187,12 @@ public class DingTalkUtil {
 
     /**
      * 发送链接消息
+     * @param userIdList 用户ID列表
+     * @param title 标题
+     * @param text 内容
+     * @param messageUrl 消息链接
+     * @param picUrl 图片链接
+     * @return 响应JSON字符串
      */
     public String sendLinkMessage(List<String> userIdList, String title, String text,
                                   String messageUrl, String picUrl) throws Exception {
@@ -191,11 +208,13 @@ public class DingTalkUtil {
         return sendWorkMessage(userIdList, msg);
     }
 
-
     // ==================== 机器人消息 ====================
 
     /**
      * 自定义机器人发送消息
+     * @param webhook 机器人webhook地址
+     * @param message 消息内容
+     * @return 响应JSON字符串
      */
     public String sendRobotMessage(String webhook, Map<String, Object> message) throws IOException {
         return okHttpUtil.postObject(webhook, message);
@@ -203,6 +222,11 @@ public class DingTalkUtil {
 
     /**
      * 机器人发送文本消息
+     * @param webhook 机器人webhook地址
+     * @param content 文本内容
+     * @param atMobiles @的手机号列表
+     * @param isAtAll 是否@所有人
+     * @return 响应JSON字符串
      */
     public String sendRobotTextMessage(String webhook, String content,
                                        List<String> atMobiles, boolean isAtAll) throws IOException {
@@ -221,11 +245,12 @@ public class DingTalkUtil {
         return sendRobotMessage(webhook, message);
     }
 
-
-    // ==================== 用户管理（带缓存） ====================
+    // ==================== 用户管理 ====================
 
     /**
      * 根据userid获取用户详情（带缓存）
+     * @param userId 用户ID
+     * @return 用户信息JSON字符串
      */
     public String getUserInfo(String userId) throws Exception {
         String cacheKey = DingTalkCacheConfig.buildUserInfoKey(userId);
@@ -235,6 +260,22 @@ public class DingTalkUtil {
                 DingTalkCacheConfig.USER_INFO_TTL,
                 () -> fetchUserInfo(getAccessToken(), userId)
         );
+    }
+
+    /**
+     * 根据userid获取用户详情（强类型）
+     * @param userId 用户ID
+     * @return 用户信息对象
+     */
+    public DingTalkUserInfo getUserInfoDto(String userId) throws Exception {
+        String json = getUserInfo(userId);
+        DingTalkApiResponse<DingTalkUserInfo> response = OBJECT_MAPPER.readValue(json,
+                OBJECT_MAPPER.getTypeFactory().constructParametricType(
+                        DingTalkApiResponse.class, DingTalkUserInfo.class));
+        if (response.isSuccess()) {
+            return response.getResult();
+        }
+        throw new RuntimeException("获取用户信息失败: " + response.getErrMsg());
     }
 
     /**
@@ -258,6 +299,8 @@ public class DingTalkUtil {
 
     /**
      * 根据手机号获取userid
+     * @param mobile 手机号
+     * @return 响应JSON字符串
      */
     public String getUserIdByMobile(String mobile) throws Exception {
         String accessToken = getAccessToken();
@@ -267,10 +310,12 @@ public class DingTalkUtil {
         return okHttpUtil.postObject(url, params);
     }
 
-    // ==================== 部门管理（带缓存） ====================
+    // ==================== 部门管理 ====================
 
     /**
      * 获取部门详情（带缓存）
+     * @param deptId 部门ID
+     * @return 部门信息JSON字符串
      */
     public String getDepartmentInfo(Long deptId) throws Exception {
         String cacheKey = DingTalkCacheConfig.buildDeptInfoKey(deptId);
@@ -280,6 +325,22 @@ public class DingTalkUtil {
                 DingTalkCacheConfig.DEPT_INFO_TTL,
                 () -> fetchDepartmentInfo(getAccessToken(), deptId)
         );
+    }
+
+    /**
+     * 获取部门详情（强类型）
+     * @param deptId 部门ID
+     * @return 部门信息对象
+     */
+    public DingTalkDeptInfo getDepartmentInfoDto(Long deptId) throws Exception {
+        String json = getDepartmentInfo(deptId);
+        DingTalkApiResponse<DingTalkDeptInfo> response = OBJECT_MAPPER.readValue(json,
+                OBJECT_MAPPER.getTypeFactory().constructParametricType(
+                        DingTalkApiResponse.class, DingTalkDeptInfo.class));
+        if (response.isSuccess()) {
+            return response.getResult();
+        }
+        throw new RuntimeException("获取部门信息失败: " + response.getErrMsg());
     }
 
     /**
@@ -303,6 +364,8 @@ public class DingTalkUtil {
 
     /**
      * 获取部门列表
+     * @param deptId 父部门ID
+     * @return 响应JSON字符串
      */
     public String getDepartmentList(Long deptId) throws Exception {
         String accessToken = getAccessToken();
@@ -310,6 +373,54 @@ public class DingTalkUtil {
         Map<String, Object> params = new HashMap<>();
         params.put("dept_id", deptId);
         return okHttpUtil.postObject(url, params);
+    }
+
+    // ==================== 登录授权 ====================
+
+    /**
+     * 根据authCode获取用户信息
+     * @param authCode 授权码
+     * @return 用户信息对象
+     */
+    public DingTalkUserInfo getUserInfoByAuthCode(String authCode) throws Exception {
+        String accessToken = getAccessToken();
+        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/getuserinfo";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("code", authCode);
+
+        String result = okHttpUtil.postJson(url, OBJECT_MAPPER.writeValueAsString(params));
+        DingTalkApiResponse<DingTalkUserInfo> response = OBJECT_MAPPER.readValue(result,
+                OBJECT_MAPPER.getTypeFactory().constructParametricType(
+                        DingTalkApiResponse.class, DingTalkUserInfo.class));
+        if (response.isSuccess()) {
+            return response.getResult();
+        }
+        log.error("获取钉钉用户信息失败: {}", result);
+        throw new RuntimeException("获取钉钉用户信息失败");
+    }
+
+    /**
+     * 根据UserId获取用户详细信息
+     * @param userId 用户ID
+     * @return 用户详细信息对象
+     */
+    public DingTalkUserInfo getUserDetail(String userId) throws Exception {
+        String accessToken = getAccessToken();
+        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/get";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("userid", userId);
+
+        String result = okHttpUtil.postJson(url, OBJECT_MAPPER.writeValueAsString(params));
+        DingTalkApiResponse<DingTalkUserInfo> response = OBJECT_MAPPER.readValue(result,
+                OBJECT_MAPPER.getTypeFactory().constructParametricType(
+                        DingTalkApiResponse.class, DingTalkUserInfo.class));
+        if (response.isSuccess()) {
+            return response.getResult();
+        }
+        log.error("获取用户详细信息失败: {}", result);
+        throw new RuntimeException("获取用户详细信息失败");
     }
 
     // ==================== 缓存管理 ====================
@@ -332,54 +443,4 @@ public class DingTalkUtil {
         stats.put("jsApiTicketTtl", cacheManager.getRemainTtl(DingTalkCacheConfig.JSAPI_TICKET_KEY));
         return stats;
     }
-
-
-
-
-    //==========================================================
-    /**
-     * 根据authCode获取用户信息
-     */
-    public JSONObject getUserInfoByAuthCode(String authCode) throws Exception {
-        String accessToken = getAccessToken();
-        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/getuserinfo";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("access_token", accessToken);
-        params.put("code", authCode);
-
-        String result = HttpUtil.post(url, JSONUtil.toJsonStr(params));
-        JSONObject jsonObject = JSONUtil.parseObj(result);
-
-        if (jsonObject.getInt("errcode") == 0) {
-            return jsonObject.getJSONObject("result");
-        }
-
-        log.error("获取钉钉用户信息失败: {}", result);
-        throw new RuntimeException("获取钉钉用户信息失败");
-    }
-
-
-    /**
-     * 根据userId获取用户详细信息
-     */
-    public JSONObject getUserDetail(String userId)  throws Exception {
-        String accessToken = getAccessToken();
-        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/get";
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("access_token", accessToken);
-        params.put("userid", userId);
-
-        String result = HttpUtil.post(url, JSONUtil.toJsonStr(params));
-        JSONObject jsonObject = JSONUtil.parseObj(result);
-
-        if (jsonObject.getInt("errcode") == 0) {
-            return jsonObject.getJSONObject("result");
-        }
-
-        log.error("获取用户详细信息失败: {}", result);
-        throw new RuntimeException("获取用户详细信息失败");
-    }
-
 }

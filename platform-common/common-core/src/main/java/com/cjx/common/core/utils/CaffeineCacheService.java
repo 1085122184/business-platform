@@ -16,17 +16,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
- * Caffeine 缓存工具类
+ * Caffeine 缓存服务类
+ * 提供基于Caffeine的高性能本地缓存操作，支持回源加载、批量操作、异步加载和统计监控
+ *
  * @author cuijixu
  * @since 1.0.0
  */
 @Slf4j
 @Component
-public class CaffeineUtil {
+public class CaffeineCacheService {
     private final CaffeineCacheManager cacheManager;
     private static final Object NULL_PLACEHOLDER = new Object();
 
-    public CaffeineUtil(CaffeineCacheManager cacheManager) {
+    public CaffeineCacheService(CaffeineCacheManager cacheManager) {
         this.cacheManager = cacheManager;
     }
 
@@ -59,7 +61,6 @@ public class CaffeineUtil {
         checkParams(cacheType, key);
         Object value = getCache(cacheType).getIfPresent(key);
 
-        // 🌟 2. 如果拿到的是占位符，说明之前查过数据库且为空，直接拦截并返回 null 给业务层
         if (value == NULL_PLACEHOLDER) {
             log.debug("[Cache] hit null placeholder -> type={}, key={}", cacheType.getCacheName(), key);
             return null;
@@ -140,16 +141,24 @@ public class CaffeineUtil {
         return clazz.cast(cached);
     }
 
+    /**
+     * 获取缓存列表，不存在则通过 loader 回源加载
+     *
+     * @param cacheType 缓存类型
+     * @param key       缓存键
+     * @param loader    回源函数
+     * @param <T>       值类型
+     * @return 缓存列表
+     */
     public <T> List<T> getOrLoadList(CacheType cacheType, String key, Function<String, List<T>> loader) {
         checkParams(cacheType, key);
         Object cached = getCache(cacheType).get(key, k -> {
             List<T> result = loader.apply(k);
-            // 如果是 null，转换为安全的空集合（防止 NullPointerException），并进行缓存
             if (result == null) {
                 log.warn("[Cache] loader 返回 null，自动转化为空集合进行缓存，key={}", k);
                 return java.util.Collections.emptyList();
             }
-            return result; // 即使是空的 ArrayList，也正常返回并让 Caffeine 缓存它！
+            return result;
         });
 
         @SuppressWarnings("unchecked")
@@ -170,7 +179,6 @@ public class CaffeineUtil {
         checkParams(cacheType, key);
         Assert.notNull(value, "缓存 value 不能为 null");
         Cache<String, Object> cache = getCache(cacheType);
-        // asMap().putIfAbsent 是原子操作
         Object existing = cache.asMap().putIfAbsent(key, value);
         boolean inserted = existing == null;
         log.debug("[Cache] putIfAbsent -> type={}, key={}, inserted={}", cacheType.getCacheName(), key, inserted);
