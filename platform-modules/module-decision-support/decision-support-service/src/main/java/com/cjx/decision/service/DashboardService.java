@@ -7,8 +7,8 @@ import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,7 +21,7 @@ public interface DashboardService {
 
     List<RawPriceDeviation> getPriceDeviations(LocalDate date);
 
-    List<CustomerTransactionDTO> findCustomerTransaction(String region, String code);
+    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code);
 
     List<CompanyMetricDTO> getCompanyList(String type, LocalDate date);
 

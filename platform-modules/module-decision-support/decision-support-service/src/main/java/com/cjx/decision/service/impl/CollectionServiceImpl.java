@@ -1,9 +1,9 @@
 package com.cjx.decision.service.impl;
 
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
-import com.cjx.decision.entity.frorcl.CollectionDetail;
-import com.cjx.decision.entity.frorcl.CollectionPlan;
-import com.cjx.decision.entity.frorcl.SalesSummary;
+import com.cjx.decision.projection.frorcl.CollectionDetail;
+import com.cjx.decision.projection.frorcl.CollectionPlan;
+import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.repository.frorcl.CollectionRepository;
 import com.cjx.decision.service.CollectionService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * @author cuijixu
+ */
 @RequiredArgsConstructor
 @Service
 public class CollectionServiceImpl implements CollectionService {

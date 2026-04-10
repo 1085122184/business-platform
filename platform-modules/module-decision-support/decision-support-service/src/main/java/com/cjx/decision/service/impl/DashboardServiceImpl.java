@@ -3,9 +3,9 @@ package com.cjx.decision.service.impl;
 import cn.hutool.core.util.RandomUtil;
 import com.cjx.decision.dto.dashboard.*;
 import com.cjx.decision.dto.salesdetail.*;
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
-import com.cjx.decision.entity.frorcl.SalesSummary;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.service.DashboardService;
 import com.cjx.decision.service.SalesService;
 import com.cjx.decision.utils.MathUtil;
@@ -96,7 +96,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<CustomerTransactionDTO> findCustomerTransaction(String region, String code) {
+    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code) {
         String yesterday = LocalDate.now().minusDays(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         return salesService.findCustomerTransaction(region,code,yesterday);

@@ -5,9 +5,9 @@ import com.cjx.common.core.utils.CaffeineUtil;
 import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
-import com.cjx.decision.entity.frorcl.SalesSummary;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.repository.frorcl.SalesRepository;
 import com.cjx.decision.service.SalesService;
 import lombok.RequiredArgsConstructor;
@@ -111,7 +111,7 @@ public class SalesServiceImpl implements SalesService {
     }
 
     @Override
-    public List<CustomerTransactionDTO> findCustomerTransaction(String region, String code, String targetDate) {
+    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String targetDate) {
         if("国内".equals(region)){
             region = "10";
         }else {

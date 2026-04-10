@@ -1,8 +1,8 @@
 package com.cjx.decision.repository.frorcl;
 
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
-import com.cjx.decision.entity.frorcl.SalesSummary;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.SalesSummary;
 import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -338,7 +338,7 @@ public interface SalesRepository extends JpaRepository<VLvlengRixiaoshou, Long> 
       WHERE 过账日期 = :targetDate AND 渠道 = :region AND 物料组= :code AND 物料组描述 <> '无价值物料' AND 销量 <> 0
       GROUP BY 客户名称
       """, nativeQuery = true)
-    List<CustomerTransactionDTO> findCustomerTransaction(@Param("region") String region,@Param("code") String code,@Param("targetDate") String targetDate);
+    List<CustomerTransactionProjection> findCustomerTransaction(@Param("region") String region,@Param("code") String code,@Param("targetDate") String targetDate);
 
     @Query(value = """
       SELECT 渠道 AS region,物料组 AS productCode,物料组描述 AS productName,SUM(销量) AS totalSales,SUM(金额) AS totalAmount,过账日期 AS latestDate FROM v_sales_detail_all

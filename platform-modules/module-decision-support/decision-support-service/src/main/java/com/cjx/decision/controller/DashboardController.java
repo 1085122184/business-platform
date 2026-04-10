@@ -8,9 +8,9 @@ import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.OrderDetail;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.OrderDetail;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 import com.cjx.decision.service.CollectionService;
 import com.cjx.decision.service.DashboardService;
 import com.cjx.decision.service.OrderService;
@@ -56,7 +56,7 @@ public class DashboardController {
     }
 
     @GetMapping("/price-deviations/details")
-    public Result<List<CustomerTransactionDTO>> getDeviationDetails(@RequestParam String code,
+    public Result<List<CustomerTransactionProjection>> getDeviationDetails(@RequestParam String code,
                                                                     @RequestParam String region) {
         return Result.success(dashboardService.findCustomerTransaction(region,code));
     }

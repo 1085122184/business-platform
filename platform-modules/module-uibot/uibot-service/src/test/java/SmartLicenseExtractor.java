@@ -1,4 +1,4 @@
-import com.cjx.uibot.service.entity.PaddleOCRResult;
+import com.cjx.uibot.dto.ocr.PaddleOCRResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 

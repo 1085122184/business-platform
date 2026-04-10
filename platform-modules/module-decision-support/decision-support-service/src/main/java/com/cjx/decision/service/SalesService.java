@@ -2,9 +2,9 @@ package com.cjx.decision.service;
 
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
-import com.cjx.decision.entity.frorcl.CustomerTransactionDTO;
-import com.cjx.decision.entity.frorcl.RawPriceDeviation;
-import com.cjx.decision.entity.frorcl.SalesSummary;
+import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.RawPriceDeviation;
+import com.cjx.decision.projection.frorcl.SalesSummary;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,7 +30,7 @@ public interface SalesService {
 
     List<RawPriceDeviation> findPriceDiff(LocalDate date);
 
-    List<CustomerTransactionDTO> findCustomerTransaction(String region, String code,String targetDate);
+    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code,String targetDate);
 
     List<CompanyMetricDTO> findSaleDetails(String type, LocalDate targetDate);
 

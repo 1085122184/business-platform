@@ -1,6 +1,7 @@
 package com.cjx.decision.repository.frorcl;
 
-import com.cjx.decision.entity.frorcl.*;
+import com.cjx.decision.projection.frorcl.*;
+import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

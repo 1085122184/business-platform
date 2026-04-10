@@ -1,6 +1,6 @@
 package com.cjx.decision.service.impl;
 
-import com.cjx.decision.entity.frorcl.OrderDetail;
+import com.cjx.decision.projection.frorcl.OrderDetail;
 import com.cjx.decision.repository.frorcl.OrderRepository;
 import com.cjx.decision.service.OrderService;
 import lombok.RequiredArgsConstructor;

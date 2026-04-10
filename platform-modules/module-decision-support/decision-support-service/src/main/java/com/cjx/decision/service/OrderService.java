@@ -1,6 +1,6 @@
 package com.cjx.decision.service;
 
-import com.cjx.decision.entity.frorcl.OrderDetail;
+import com.cjx.decision.projection.frorcl.OrderDetail;
 
 import java.time.LocalDate;
 import java.util.List;
