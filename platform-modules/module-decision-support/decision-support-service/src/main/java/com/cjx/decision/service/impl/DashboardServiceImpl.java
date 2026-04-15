@@ -7,6 +7,7 @@ import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
+import com.cjx.decision.projection.frorcl.AllDetails;
 import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 import com.cjx.decision.service.*;
@@ -32,7 +33,10 @@ public class DashboardServiceImpl implements DashboardService {
     private final SalesAnalysisService salesAnalysisService;
     private final TrendAnalysisService trendAnalysisService;
     private final CollectionService collectionService;
-    
+    private final OrderService orderService;
+    private final AllDetailsService allDetailsService;
+
+
     @Override
     public DashboardMetricsDTO getMetrics(LocalDate date) {
         return metricsService.getMetrics(date);
@@ -81,5 +85,15 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<CompanyMetricDTO> getCollectionCompanies(LocalDate date) {
         return collectionService.getCollectionCompanies(date);
+    }
+
+    @Override
+    public List<com.cjx.decision.projection.frorcl.OrderDetail> getOrderCompanyDetails(String companyName, LocalDate date) {
+        return orderService.getCompanyDetails(date, companyName);
+    }
+
+    @Override
+    public List<AllDetails> findSalesDetail(LocalDate targetDate, String companyName) {
+        return allDetailsService.findSalesDetail(targetDate,companyName);
     }
 }

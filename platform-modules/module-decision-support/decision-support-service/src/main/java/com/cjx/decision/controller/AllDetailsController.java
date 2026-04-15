@@ -2,6 +2,8 @@ package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
+import com.cjx.decision.projection.frorcl.AllDetails;
+import com.cjx.decision.service.AllDetailsService;
 import com.cjx.decision.service.DashboardService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
@@ -15,31 +17,28 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 回款分析Controller
- * 提供回款公司列表查询接口
- * 
  * @author cuijixu
- * @version 1.0.0
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/collection-analysis")
-@RequiredArgsConstructor
+@RequestMapping("/api/all_details")
 @Validated
-@Tag(name = "回款分析", description = "查询回款公司列表数据")
+@RequiredArgsConstructor
+@Tag(name = "获取明细", description = "获取各项明细")
 @CrossOrigin(origins = "*")
-public class CollectionController {
-    
+public class AllDetailsController {
     private final DashboardService dashboardService;
-    
+
     /**
-     * 查询回款公司列表
+     * 查询销售明细
+     * @param companyName 公司名称
      * @param date 日期
-     * @return 回款公司列表(value=当月回款, target=计划回款, companyName=公司名)
+     * @return 公司指标列表
      */
-    @GetMapping("/companies")
-    public Result<List<CompanyMetricDTO>> getCollectionCompanies(
+    @GetMapping("/sale_details")
+    public Result<List<AllDetails>> getCompanyList(
+            @RequestParam String companyName,
             @NotNull(message = "日期不能为空") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return Result.success(dashboardService.getCollectionCompanies(date));
+        return Result.success(dashboardService.findSalesDetail(date, companyName));
     }
 }

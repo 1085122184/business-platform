@@ -15,8 +15,12 @@ import java.util.List;
  * 只读Repository，用于查询销售相关数据。
  * 仅提供查询方法，不支持增删改操作。
  *
+ * @deprecated 已按业务域拆分为 MetricsRepository、PriceAnalysisRepository、SalesAnalysisRepository、TrendAnalysisRepository。
+ *             请迁移到对应的专用Repository。此接口保留仅作过渡期兼容使用。
+ *
  * @author cuijixu
  */
+@Deprecated
 @org.springframework.stereotype.Repository
 public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
 
@@ -48,7 +52,7 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
                  ROUND(SUM(NVL(销量, 0)), 2) AS totalSales,
                  ROUND(SUM(NVL(金额, 0)), 2) AS totalAmount
           FROM v_sales_detail_all
-          WHERE 工厂 = :company
+          WHERE 公司编码 = :company
             AND TO_DATE(过账日期, 'YYYY-MM-DD') >= TRUNC(:targetDate-1, 'MM')
             AND TO_DATE(过账日期, 'YYYY-MM-DD') <= TRUNC(:targetDate-1)
           GROUP BY 过账日期
@@ -120,7 +124,7 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
       2) AS amountRatio,
       CASE 渠道 WHEN '10' THEN '国内' WHEN '20' THEN '国外' END AS region
       FROM v_sales_detail_all
-      WHERE 工厂 = :company
+      WHERE 公司编码 = :company
         AND TO_DATE(过账日期, 'YYYY-MM-DD') = TRUNC(:targetDate-1) AND 物料组描述 <> '无价值物料' AND 销售主产 = '1'
       GROUP BY 渠道,物料组描述,物料组
       """, nativeQuery = true)
@@ -323,7 +327,7 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
 
     @Query(value = """
       SELECT 渠道 AS region,物料组 AS productCode,物料组描述 AS productName,SUM(销量) AS totalSales,SUM(金额) AS totalAmount,过账日期 AS latestDate FROM v_sales_detail_all
-      WHERE 工厂 = :companyName AND 物料组 = :productCode 
+      WHERE 公司编码 = :companyName AND 物料组 = :productCode 
       AND TO_DATE(过账日期, 'YYYY-MM-DD') >= TRUNC(:targetDate-1, 'MM')
       AND TO_DATE(过账日期, 'YYYY-MM-DD') <= TRUNC(:targetDate-1)
       GROUP BY 渠道,物料组,物料组描述,过账日期

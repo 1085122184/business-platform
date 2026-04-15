@@ -213,19 +213,19 @@ public class SalesServiceImpl implements SalesService {
 
     @Override
     public List<SalesSummary> getProductDeepMonth(String companyName, String productCode,LocalDate date) {
-        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_MONTH.getOrDefault(companyName, companyName);
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName, companyName);
         return salesRepository.getProductDeepMonth(companyName,productCode,date);
     }
 
     @Override
     public List<SalesSummary> getProductDeepYear(String companyName, String productCode,LocalDate date) {
-        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_YEAR.getOrDefault(companyName, companyName);
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName, companyName);
         return salesRepository.getProductDeepYear(companyName,productCode,date);
     }
 
     @Override
     public List<SalesSummary> getProductCustomer(String companyName, String productCode,LocalDate date) {
-        companyName = CompanyCodeConstant.COMPANY_CODE_MAP_YEAR.getOrDefault(companyName, companyName);
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName, companyName);
         return salesRepository.getProductCustomer(companyName,productCode,date);
     }
 
@@ -234,7 +234,7 @@ public class SalesServiceImpl implements SalesService {
     public void warmUpComplexData(LocalDate targetDate) {
         this.findSaleDetails(MetricType.VOLUME.getCode(), targetDate);
         this.findSaleDetails(MetricType.AMOUNT.getCode(), targetDate);
-        List<String> companies = Arrays.asList("3001", "1400", "1301", "1201");
+        List<String> companies = Arrays.asList("3000", "1400", "1300", "1200");
         for (String company : companies) {
             this.findSummaryByCompany(targetDate, company);
             this.findDetailsByCompany(targetDate, company);

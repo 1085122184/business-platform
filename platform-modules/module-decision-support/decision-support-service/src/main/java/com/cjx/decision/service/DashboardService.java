@@ -7,8 +7,11 @@ import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
+import com.cjx.decision.projection.frorcl.AllDetails;
 import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
+import com.cjx.decision.projection.frorcl.OrderDetail;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -110,4 +113,18 @@ public interface DashboardService {
      * @return 回款公司列表(value=当月回款, target=计划回款, companyName=公司名)
      */
     List<CompanyMetricDTO> getCollectionCompanies(LocalDate date);
+
+    // ===== 订单分析 =====
+
+    /**
+     * 查询订单公司详情
+     * @param companyName 公司名称
+     * @param date 日期
+     * @return 订单详情
+     */
+    List<OrderDetail> getOrderCompanyDetails(String companyName, LocalDate date);
+
+
+    List<AllDetails> findSalesDetail(@Param("targetDate") LocalDate targetDate, @Param("companyCode") String companyCode);
+
 }

@@ -6,7 +6,6 @@ import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
 import com.cjx.decision.projection.frorcl.OrderDetail;
 import com.cjx.decision.service.DashboardService;
-import com.cjx.decision.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,9 +33,8 @@ import java.util.List;
 @Tag(name = "销售分析", description = "查询销售明细和公司详情数据")
 @CrossOrigin(origins = "*")
 public class SalesAnalysisController {
-    
+
     private final DashboardService dashboardService;
-    private final OrderService orderService;
     
     /**
      * 查询销售公司列表
@@ -76,7 +74,7 @@ public class SalesAnalysisController {
     public Result<List<OrderDetail>> getOrderCompanyDetail(
             @NotBlank(message = "公司名称不能为空") @RequestParam String companyName,
             @NotNull(message = "日期不能为空") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return Result.success(orderService.getCompanyDetails(date, companyName));
+        return Result.success(dashboardService.getOrderCompanyDetails(companyName, date));
     }
 
     /**

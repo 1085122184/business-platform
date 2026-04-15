@@ -1,5 +1,8 @@
 package com.cjx.decision.service.impl;
 
+import com.cjx.common.core.enums.CacheType;
+import com.cjx.common.core.utils.CaffeineCacheService;
+import com.cjx.decision.constant.CompanyCodeConstant;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepCustomer;
@@ -8,7 +11,7 @@ import com.cjx.decision.dto.salesdetail.ProductDeepKPI;
 import com.cjx.decision.dto.salesdetail.ProductDeepTrend;
 import com.cjx.decision.enums.AnalysisType;
 import com.cjx.decision.projection.frorcl.SalesSummary;
-import com.cjx.decision.service.SalesService;
+import com.cjx.decision.repository.frorcl.TrendAnalysisRepository;
 import com.cjx.decision.service.TrendAnalysisService;
 import com.cjx.decision.utils.MathUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,22 +27,23 @@ import java.util.stream.Collectors;
 /**
  * 趋势分析服务实现
  * 负责查询销售趋势和产品深度数据
- * 
+ *
  * @author system
  * @version 1.0.0
  */
 @Service
 @RequiredArgsConstructor
 public class TrendAnalysisServiceImpl implements TrendAnalysisService {
-    
-    private final SalesService salesService;
+
+    private final TrendAnalysisRepository trendAnalysisRepository;
+    private final CaffeineCacheService caffeineCacheService;
 
     @Override
     public List<SalesTrendProductDTO> getMonthlyTrends(String date) {
         List<SalesTrendProductDTO> resultList = new ArrayList<>();
         LocalDate endLocalDate = LocalDate.now().minusDays(1);
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        getMonthTrends(resultList, endLocalDate, endDate);
+        buildMonthTrends(resultList, endLocalDate, endDate);
         return resultList;
     }
 
@@ -48,18 +52,29 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
         List<SalesTrendPointDTO> resultList = new ArrayList<>();
         LocalDate endLocalDate = LocalDate.now().minusDays(1);
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        getYearTrends(resultList, endLocalDate, endDate, productCode, region);
+        buildYearTrends(resultList, endLocalDate, endDate, productCode, region);
         return resultList;
     }
 
     @Override
     public ProductDeepDetail getProductDeepDetail(String companyName, String productCode, String type, LocalDate date) {
+        AnalysisType analysisType = AnalysisType.fromCode(type);
+        String key = "productDeep:" + companyName + ":" + productCode + ":" + type + ":" + date;
+        return caffeineCacheService.getOrLoad(
+            CacheType.TODAY_DATA, key,
+            k -> buildProductDeepDetail(companyName, productCode, analysisType, date),
+            ProductDeepDetail.class
+        );
+    }
+
+    private ProductDeepDetail buildProductDeepDetail(String companyName, String productCode, AnalysisType type, LocalDate date) {
         ProductDeepDetail result = new ProductDeepDetail();
         List<ProductDeepTrend> deepTrends = new ArrayList<>();
         ProductDeepKPI kpi = new ProductDeepKPI();
-
+        companyName = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName, companyName);
         List<ProductDeepCustomer> customerList = new ArrayList<>();
-        List<SalesSummary> customers = salesService.getProductCustomer(companyName, productCode, date);
+
+        List<SalesSummary> customers = trendAnalysisRepository.getProductCustomer(companyName, productCode, date);
         int limit = Math.min(10, customers.size());
         for (int i = 0; i < limit; i++) {
             SalesSummary salesSummary = customers.get(i);
@@ -68,12 +83,11 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
             customer.setVolume(salesSummary.getTotalSales());
             customerList.add(customer);
         }
-        AnalysisType analysisType = AnalysisType.fromCode(type);
-        if (analysisType == AnalysisType.MONTH) {
-            List<SalesSummary> monthList = salesService.getProductDeepMonth(companyName, productCode, date);
+        if (type == AnalysisType.MONTH) {
+            List<SalesSummary> monthList = trendAnalysisRepository.getProductDeepMonth(companyName, productCode, date);
             deepTrends = buildTrendData(kpi, monthList);
         } else {
-            List<SalesSummary> yearList = salesService.getProductDeepYear(companyName, productCode, date);
+            List<SalesSummary> yearList = trendAnalysisRepository.getProductDeepYear(companyName, productCode, date);
             deepTrends = buildTrendData(kpi, yearList);
         }
         result.setTrend(deepTrends);
@@ -133,8 +147,12 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
         return resultList;
     }
 
-    private void getMonthTrends(List<SalesTrendProductDTO> resultList, LocalDate endLocalDate, String endDate) {
-        List<SalesSummary> trendsAll = salesService.findTrendsAll(endLocalDate);
+    private void buildMonthTrends(List<SalesTrendProductDTO> resultList, LocalDate endLocalDate, String endDate) {
+        String startDate = LocalDate.now().minusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        List<SalesSummary> trendsAll = caffeineCacheService.getOrLoadList(
+            CacheType.TODAY_DATA, "trendsAll:" + endDate,
+            k -> trendAnalysisRepository.findTrendsAll(startDate, endDate)
+        );
         Map<String, List<SalesSummary>> groupedData = trendsAll.stream()
                 .collect(Collectors.groupingBy(po -> po.getRegion() + "_" + po.getProductCode()));
 
@@ -212,8 +230,17 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
         }
     }
 
-    private void getYearTrends(List<SalesTrendPointDTO> resultList, LocalDate endLocalDate, String endDate, String productCode, String region) {
-        List<SalesSummary> trendsAll = salesService.findTrendsYear(endLocalDate, productCode, region);
+    private void buildYearTrends(List<SalesTrendPointDTO> resultList, LocalDate endLocalDate, String endDate, String productCode, String region) {
+        LocalDate now = LocalDate.now();
+        LocalDate firstDayOfYear = LocalDate.of(now.getYear(), 1, 1);
+        String startDate = firstDayOfYear.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String key = "trendsYear:" + endDate + ":" + productCode + "_" + region;
+        
+        List<SalesSummary> trendsAll = caffeineCacheService.getOrLoadList(
+            CacheType.TODAY_DATA, key,
+            k -> trendAnalysisRepository.findTrendsYear(startDate, endDate, productCode, region)
+        );
+        
         Map<String, SalesSummary> monthDataMap = trendsAll.stream()
                 .collect(Collectors.toMap(
                         SalesSummary::getLatestDate,
