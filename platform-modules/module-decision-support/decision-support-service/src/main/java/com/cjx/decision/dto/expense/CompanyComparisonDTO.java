@@ -1,45 +1,22 @@
 package com.cjx.decision.dto.expense;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import java.math.BigDecimal;
+import java.util.List;
 
-/**
- * 各公司三费对比数据DTO
- *
- * @author system
- * @version 1.0.0
- */
 @Data
+@Schema(description = "各公司三费对比数据")
 public class CompanyComparisonDTO {
-    
-    /**
-     * 公司名称
-     */
-    private String name;
-    
-    /**
-     * 销售费用（亿元）
-     */
-    private BigDecimal sales;
-    
-    /**
-     * 管理费用（亿元）
-     */
-    private BigDecimal management;
-    
-    /**
-     * 财务费用（亿元）
-     */
-    private BigDecimal finance;
-    
-    /**
-     * 三费合计（亿元）
-     */
-    private BigDecimal total;
-    
-    /**
-     * 同比变化百分比
-     */
-    private BigDecimal yoy;
+    @Schema(description = "公司名称列表（横轴）")
+    private List<String> company;
+
+    @Schema(description = "各公司销售费用（万元）")
+    private List<BigDecimal> sales;
+
+    @Schema(description = "各公司管理费用（万元）")
+    private List<BigDecimal> management;
+
+    @Schema(description = "各公司财务费用（万元）")
+    private List<BigDecimal> finance;
 }

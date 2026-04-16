@@ -1,35 +1,29 @@
 package com.cjx.decision.dto.expense;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
+import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 公司三费明细分页数据DTO
- *
- * @author system
- * @version 1.0.0
- */
 @Data
+@Schema(description = "公司三费明细列表")
 public class CompanyDetailListDTO {
-    
-    /**
-     * 数据列表
-     */
-    private List<CompanyComparisonDTO> list;
-    
-    /**
-     * 总记录数
-     */
+    private List<Item> list;
     private Long total;
-    
-    /**
-     * 当前页码
-     */
-    private Integer page;
-    
-    /**
-     * 每页条数
-     */
-    private Integer pageSize;
+
+    @Data
+    public static class Item {
+        @Schema(description = "公司名称")
+        private String name;
+        @Schema(description = "销售费用")
+        private BigDecimal sales;
+        @Schema(description = "管理费用")
+        private BigDecimal management;
+        @Schema(description = "财务费用")
+        private BigDecimal finance;
+        @Schema(description = "合计")
+        private BigDecimal total;
+        @Schema(description = "同比 (%)")
+        private BigDecimal yoy;
+    }
 }

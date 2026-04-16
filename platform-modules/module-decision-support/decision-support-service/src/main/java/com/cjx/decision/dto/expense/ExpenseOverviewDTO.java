@@ -1,87 +1,32 @@
 package com.cjx.decision.dto.expense;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
 import java.math.BigDecimal;
 
-/**
- * 三费总览指标DTO
- *
- * @author system
- * @version 1.0.0
- */
 @Data
+@Schema(description = "三费总览指标")
 public class ExpenseOverviewDTO {
-    
-    /**
-     * 三费总额
-     */
-    private ExpenseAmount totalExpense;
-    
-    /**
-     * 销售费用
-     */
-    private ExpensePercent salesExpense;
-    
-    /**
-     * 管理费用
-     */
-    private ExpensePercent managementExpense;
-    
-    /**
-     * 财务费用
-     */
-    private ExpensePercent financeExpense;
-    
-    /**
-     * 费用金额（带同比）
-     */
+    @Schema(description = "三费总额")
+    private MetricDetail totalExpense;
+    @Schema(description = "销售费用")
+    private MetricDetail salesExpense;
+    @Schema(description = "管理费用")
+    private MetricDetail managementExpense;
+    @Schema(description = "财务费用")
+    private MetricDetail financeExpense;
+
     @Data
-    public static class ExpenseAmount {
-        /**
-         * 金额数值
-         */
+    public static class MetricDetail {
+        @Schema(description = "金额")
         private BigDecimal amount;
-        
-        /**
-         * 单位（亿/万）
-         */
-        private String unit;
-        
-        /**
-         * 同比变化（正数表示上涨，负数表示下降）
-         */
-        private BigDecimal yoyChange;
-        
-        /**
-         * 同比变化文本描述
-         */
-        private String yoyChangeText;
-    }
-    
-    /**
-     * 费用金额（带占比）
-     */
-    @Data
-    public static class ExpensePercent {
-        /**
-         * 金额数值
-         */
-        private BigDecimal amount;
-        
-        /**
-         * 单位（亿/万）
-         */
-        private String unit;
-        
-        /**
-         * 占比百分比
-         */
+        @Schema(description = "单位", example = "亿")
+        private String unit = "亿";
+        @Schema(description = "占比 (百分比)", example = "45.5")
         private BigDecimal percent;
-        
-        /**
-         * 同比变化（正数表示上涨，负数表示下降）
-         */
+        @Schema(description = "同比变动 (%)", example = "-5.2")
         private BigDecimal yoyChange;
+        @Schema(description = "同比变动描述", example = "同比下降 ¥1.16亿")
+        private String yoyChangeText;
     }
 }
