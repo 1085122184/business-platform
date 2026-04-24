@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -25,12 +26,13 @@ public class ExpenseServiceImpl implements ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private static final DateTimeFormatter DF = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final BigDecimal BILLION_DIVISOR = new BigDecimal("100000000"); // 亿元单位转换器
+    private static final DateTimeFormatter MF = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final BigDecimal BILLION_DIVISOR = new BigDecimal("1"); //
 
     @Override
     public ExpenseOverviewDTO getOverview(LocalDate date) {
-        String curr = date.format(DF);
-        String last = date.minusYears(1).format(DF);
+        String curr = date.format(MF);
+        String last = date.minusMonths(1).format(MF);
         Map<String, Object> raw = expenseRepository.getComparisonData(curr, last);
 
         ExpenseOverviewDTO dto = new ExpenseOverviewDTO();
@@ -52,11 +54,11 @@ public class ExpenseServiceImpl implements ExpenseService {
         ExpenseOverviewDTO.MetricDetail total = new ExpenseOverviewDTO.MetricDetail();
         total.setAmount(BigDecimal.valueOf(curTotal).divide(BILLION_DIVISOR, 2, RoundingMode.HALF_UP));
         total.setYoyChange(BigDecimal.valueOf(MathUtil.calculateYoy(curTotal, lstTotal)));
-        total.setUnit("亿");
+        total.setUnit("万");
 
         // 生成文字描述 (例如：同比上升 ¥1.25亿)
         double diff = (curTotal - lstTotal) / 1_0000_0000.0;
-        String desc = diff > 0 ? String.format("同比上升 ¥%.2f亿", diff) : String.format("同比下降 ¥%.2f亿", Math.abs(diff));
+        String desc = diff > 0 ? String.format("同比上升 ¥%.2f万", diff) : String.format("同比下降 ¥%.2f万", Math.abs(diff));
         total.setYoyChangeText(desc);
 
         dto.setTotalExpense(total);
@@ -67,18 +69,31 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public ExpenseStructureDTO getStructure(LocalDate date) {
+    public  List<ExpenseStructureDTO> getStructure(LocalDate date) {
+        List<ExpenseStructureDTO> result = new ArrayList<>();
         // 复用总览数据来计算占比
         ExpenseOverviewDTO overview = this.getOverview(date);
-        ExpenseStructureDTO structure = new ExpenseStructureDTO();
-        List<ExpenseStructureDTO.StructureItem> list = new ArrayList<>();
-
-        list.add(new ExpenseStructureDTO.StructureItem("销售费用", overview.getSalesExpense().getAmount(), overview.getSalesExpense().getPercent()));
-        list.add(new ExpenseStructureDTO.StructureItem("管理费用", overview.getManagementExpense().getAmount(), overview.getManagementExpense().getPercent()));
-        list.add(new ExpenseStructureDTO.StructureItem("财务费用", overview.getFinanceExpense().getAmount(), overview.getFinanceExpense().getPercent()));
-
-        structure.setList(list);
-        return structure;
+        ExpenseStructureDTO sales = new ExpenseStructureDTO();
+        sales.setName("销售费用");
+        sales.setValue(overview.getSalesExpense().getAmount());
+        sales.setPercent(overview.getSalesExpense().getPercent());
+        result.add(sales);
+        ExpenseStructureDTO manage = new ExpenseStructureDTO();
+        manage.setName("管理费用");
+        manage.setValue(overview.getManagementExpense().getAmount());
+        manage.setPercent(overview.getManagementExpense().getPercent());
+        result.add(manage);
+        ExpenseStructureDTO finance = new ExpenseStructureDTO();
+        finance.setName("财务费用");
+        finance.setValue(overview.getFinanceExpense().getAmount());
+        finance.setPercent(overview.getFinanceExpense().getPercent());
+        result.add(finance);
+//        result.add(new ExpenseStructureDTO.StructureItem("销售费用", overview.getSalesExpense().getAmount(), overview.getSalesExpense().getPercent()));
+//        result.add(new ExpenseStructureDTO.StructureItem("管理费用", overview.getManagementExpense().getAmount(), overview.getManagementExpense().getPercent()));
+//        result.add(new ExpenseStructureDTO.StructureItem("财务费用", overview.getFinanceExpense().getAmount(), overview.getFinanceExpense().getPercent()));
+//        structure.setList(list);
+        System.out.println(123);
+        return result;
     }
 
     @Override
@@ -108,24 +123,24 @@ public class ExpenseServiceImpl implements ExpenseService {
     }
 
     @Override
-    public CompanyComparisonDTO getComparison(LocalDate date) {
-        List<Map<String, Object>> rawList = expenseRepository.getCompanyComparison(date.format(DF));
+    public List<CompanyComparisonDTO> getComparison(LocalDate date) {
+        List<Map<String, Object>> rawList = expenseRepository.getCompanyComparison(date.format(MF),date.format(MF));
 
-        CompanyComparisonDTO comparisonDTO = new CompanyComparisonDTO();
-        comparisonDTO.setCompany(rawList.stream().map(m -> m.get("COMPANY_NAME").toString()).collect(Collectors.toList()));
-
-        // 转换为万元展示
-        BigDecimal tenThousand = new BigDecimal("10000");
-        comparisonDTO.setSales(rawList.stream().map(m -> BigDecimal.valueOf(getDoubleValue(m, "SALES")).divide(tenThousand, 2, RoundingMode.HALF_UP)).collect(Collectors.toList()));
-        comparisonDTO.setManagement(rawList.stream().map(m -> BigDecimal.valueOf(getDoubleValue(m, "MANAGE")).divide(tenThousand, 2, RoundingMode.HALF_UP)).collect(Collectors.toList()));
-        comparisonDTO.setFinance(rawList.stream().map(m -> BigDecimal.valueOf(getDoubleValue(m, "FINANCE")).divide(tenThousand, 2, RoundingMode.HALF_UP)).collect(Collectors.toList()));
-
-        return comparisonDTO;
+        List<CompanyComparisonDTO> companyComparisonDTOS = new ArrayList<>();
+        rawList.forEach(map -> {
+            CompanyComparisonDTO comparisonDTO = new CompanyComparisonDTO();
+            comparisonDTO.setName(map.get("COMPANY_NAME").toString());
+            comparisonDTO.setSales(BigDecimal.valueOf(getDoubleValue(map, "SALES")));
+            comparisonDTO.setManagement(BigDecimal.valueOf(getDoubleValue(map, "MANAGE")));
+            comparisonDTO.setFinance(BigDecimal.valueOf(getDoubleValue(map, "FINANCE")));
+            companyComparisonDTOS.add(comparisonDTO);
+        });
+        return companyComparisonDTOS;
     }
 
     @Override
     public CompanyDetailListDTO getCompanyDetail(LocalDate date, String keyword, Integer page, Integer pageSize) {
-        String queryDate = date.format(DF);
+        String queryDate = date.format(MF);
         // 如果关键字为空字符串，将其设为 null 方便 SQL 判断
         String queryKey = StringUtils.hasText(keyword) ? keyword.trim() : null;
 
@@ -144,19 +159,65 @@ public class ExpenseServiceImpl implements ExpenseService {
             item.setName(m.get("COMPANY_NAME") != null ? m.get("COMPANY_NAME").toString() : "未知公司");
 
             // 数据转万元
-            BigDecimal tenThousand = new BigDecimal("10000");
-            item.setSales(BigDecimal.valueOf(getDoubleValue(m, "SALES_EXP")).divide(tenThousand, 2, RoundingMode.HALF_UP));
-            item.setManagement(BigDecimal.valueOf(getDoubleValue(m, "MANAGE_EXP")).divide(tenThousand, 2, RoundingMode.HALF_UP));
-            item.setFinance(BigDecimal.valueOf(getDoubleValue(m, "FINANCE_EXP")).divide(tenThousand, 2, RoundingMode.HALF_UP));
-            item.setTotal(BigDecimal.valueOf(getDoubleValue(m, "TOTAL_EXP")).divide(tenThousand, 2, RoundingMode.HALF_UP));
+            double totalExp = getDoubleValue(m, "SALES_EXP")+getDoubleValue(m, "SALES_EXP")+getDoubleValue(m, "SALES_EXP");
+            item.setSales(BigDecimal.valueOf(getDoubleValue(m, "SALES_EXP")));
+            item.setManagement(BigDecimal.valueOf(getDoubleValue(m, "MANAGE_EXP")));
+            item.setFinance(BigDecimal.valueOf(getDoubleValue(m, "FINANCE_EXP")));
+            item.setTotal(BigDecimal.valueOf(totalExp));
 
             // 同比
-            item.setYoy(BigDecimal.valueOf(getDoubleValue(m, "YOY_RATE")).setScale(2, RoundingMode.HALF_UP));
+//            item.setYoy(BigDecimal.valueOf(getDoubleValue(m, "YOY_RATE")).setScale(2, RoundingMode.HALF_UP));
             return item;
         }).collect(Collectors.toList());
 
         dto.setList(itemList);
         return dto;
+    }
+
+    @Override
+    public List<ExpenseDailyDetail> getDailyDetail(LocalDate date, String companyName) {
+        List<ExpenseDailyDetail> resultList = new ArrayList<>();
+        String yesterday = date.format(DF);
+        expenseRepository.getDailyDetail(yesterday,companyName).forEach(map->{
+            ExpenseDailyDetail expenseDailyDetail = new ExpenseDailyDetail();
+            expenseDailyDetail.setCompanyName(map.get("COMPANY_NAME").toString());
+            expenseDailyDetail.setTypes(map.get("TYPES").toString());
+            expenseDailyDetail.setText(map.get("TEXT").toString());
+            expenseDailyDetail.setAmount(BigDecimal.valueOf(getDoubleValue(map, "AMOUNT")));
+            resultList.add(expenseDailyDetail);
+        });
+
+
+        return resultList;
+    }
+
+    @Override
+    public List<BudgetExecutionDTO> getBudgetExecution(LocalDate date, String dimension) {
+        List<BudgetExecutionDTO> resultList = new ArrayList<>();
+        String thisMonth = date.format(MF);
+        String startMonth = date.format(MF);
+        if ("year".equals(dimension)){
+            startMonth = thisMonth.substring(0, 4) + "-01";
+        }
+        Map<Object, Map<String, Object>> budgetMaps = expenseRepository.getBudget(startMonth,thisMonth).stream()
+                .collect(Collectors.toMap(
+                        map -> map.get("COMPANY_NAME"),
+                        map -> map,
+                        (existing, replacement) -> replacement
+                ));
+        expenseRepository.getCompanyComparison(startMonth,thisMonth).forEach(map->{
+            BudgetExecutionDTO budgetExecutionDTO = new BudgetExecutionDTO();
+            budgetExecutionDTO.setCompanyName(map.get("COMPANY_NAME").toString());
+            budgetExecutionDTO.setSalesActual(BigDecimal.valueOf(getDoubleValue(map, "SALES")));
+            budgetExecutionDTO.setMgmtActual(BigDecimal.valueOf(getDoubleValue(map, "MANAGE")));
+            budgetExecutionDTO.setFinActual(BigDecimal.valueOf(getDoubleValue(map, "FINANCE")));
+            Map<String, Object> budgetMap = budgetMaps.get(map.get("COMPANY_NAME"));
+            budgetExecutionDTO.setSalesBudget(BigDecimal.valueOf(getDoubleValue(budgetMap, "SALES_BUDGET")));
+            budgetExecutionDTO.setMgmtBudget(BigDecimal.valueOf(getDoubleValue(budgetMap, "MANAGE_BUDGET")));
+            budgetExecutionDTO.setFinBudget(BigDecimal.valueOf(getDoubleValue(budgetMap, "FINANCE_BUDGET")));
+            resultList.add(budgetExecutionDTO);
+        });
+        return resultList;
     }
 
     // ---------------- 私有辅助方法 ----------------
@@ -168,7 +229,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         ExpenseOverviewDTO.MetricDetail detail = new ExpenseOverviewDTO.MetricDetail();
         detail.setAmount(BigDecimal.valueOf(cur).divide(BILLION_DIVISOR, 2, RoundingMode.HALF_UP));
         detail.setYoyChange(BigDecimal.valueOf(MathUtil.calculateYoy(cur, lst)));
-        detail.setUnit("亿");
+        detail.setUnit("万");
         return detail;
     }
 

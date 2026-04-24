@@ -69,26 +69,29 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
 
     private ProductDeepDetail buildProductDeepDetail(String companyName, String productCode, AnalysisType type, LocalDate date) {
         ProductDeepDetail result = new ProductDeepDetail();
-        List<ProductDeepTrend> deepTrends = new ArrayList<>();
+        List<ProductDeepTrend> deepTrends;
         ProductDeepKPI kpi = new ProductDeepKPI();
         companyName = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName, companyName);
         List<ProductDeepCustomer> customerList = new ArrayList<>();
+        List<SalesSummary> customers = new ArrayList<>();
+        if (type == AnalysisType.MONTH) {
+            customers = trendAnalysisRepository.getProductCustomerMonth(companyName, productCode, date);
+            List<SalesSummary> monthList = trendAnalysisRepository.getProductDeepMonth(companyName, productCode, date);
+            deepTrends = buildTrendData(kpi, monthList);
+        } else {
+            customers = trendAnalysisRepository.getProductCustomer(companyName, productCode, date);
+            List<SalesSummary> yearList = trendAnalysisRepository.getProductDeepYear(companyName, productCode, date);
+            deepTrends = buildTrendData(kpi, yearList);
+        }
 
-        List<SalesSummary> customers = trendAnalysisRepository.getProductCustomer(companyName, productCode, date);
-        int limit = Math.min(10, customers.size());
+        int limit = Math.min(20, customers.size());
         for (int i = 0; i < limit; i++) {
             SalesSummary salesSummary = customers.get(i);
             ProductDeepCustomer customer = new ProductDeepCustomer();
             customer.setName(salesSummary.getCustomer());
             customer.setVolume(salesSummary.getTotalSales());
+            customer.setAmount(salesSummary.getTotalAmount());
             customerList.add(customer);
-        }
-        if (type == AnalysisType.MONTH) {
-            List<SalesSummary> monthList = trendAnalysisRepository.getProductDeepMonth(companyName, productCode, date);
-            deepTrends = buildTrendData(kpi, monthList);
-        } else {
-            List<SalesSummary> yearList = trendAnalysisRepository.getProductDeepYear(companyName, productCode, date);
-            deepTrends = buildTrendData(kpi, yearList);
         }
         result.setTrend(deepTrends);
         result.setKpi(kpi);
@@ -98,7 +101,11 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
 
     private List<ProductDeepTrend> buildTrendData(ProductDeepKPI kpi, List<SalesSummary> list) {
         BigDecimal allVolume = BigDecimal.ZERO;
+        BigDecimal allDomesticVolume = BigDecimal.ZERO;
+        BigDecimal allIntVolume = BigDecimal.ZERO;
         BigDecimal allAmount = BigDecimal.ZERO;
+        BigDecimal allDomesticAmount = BigDecimal.ZERO;
+        BigDecimal allIntAmount = BigDecimal.ZERO;
         Map<String, List<SalesSummary>> groupedByDate = list.stream()
                 .collect(Collectors.groupingBy(SalesSummary::getLatestDate));
         List<ProductDeepTrend> resultList = new ArrayList<>();
@@ -120,8 +127,12 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
                 BigDecimal recordAmount = record.getTotalAmount() != null ? record.getTotalAmount() : BigDecimal.ZERO;
                 if (isDomestic) {
                     domesticVolume = domesticVolume.add(recordVolume);
+                    allDomesticVolume = allDomesticVolume.add(recordVolume);
+                    allDomesticAmount = allDomesticAmount.add(recordAmount);
                 } else {
                     intlVolume = intlVolume.add(recordVolume);
+                    allIntVolume = allIntVolume.add(recordVolume);
+                    allIntAmount = allIntAmount.add(recordAmount);
                 }
 
                 // 无论国内国外，当天的销售额都累加
@@ -138,8 +149,27 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
             trendObj.setAmount(totalAmount);
             resultList.add(trendObj);
         }
-        kpi.setAvgPrice(allAmount.divide(allVolume, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(10000)));
+        kpi.setAvgPrice(
+                allVolume.compareTo(BigDecimal.ZERO) == 0
+                        ? BigDecimal.ZERO
+                        : allAmount.divide(allVolume, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(10000))
+        );
         kpi.setTotalVolume(allVolume);
+        kpi.setTotalAmount(allAmount);
+        kpi.setDomesticVolume(allDomesticVolume);
+        kpi.setIntlVolume(allIntVolume);
+        kpi.setDomesticAmount(allDomesticAmount);
+        kpi.setIntlAmount(allIntAmount);
+        kpi.setDomesticAvgPrice(
+                allDomesticVolume.compareTo(BigDecimal.ZERO) == 0
+                        ? BigDecimal.ZERO
+                        : allDomesticAmount.divide(allDomesticVolume, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(10000))
+        );
+        kpi.setIntlAvgPrice(
+                allIntVolume.compareTo(BigDecimal.ZERO) == 0
+                        ? BigDecimal.ZERO
+                        : allIntAmount.divide(allIntVolume, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(10000))
+        );
         // TODO: 待实现利润估算逻辑
         kpi.setProfitEst(null);
         // 4. 按日期升序排序，保证 ECharts 折线图不会乱跑

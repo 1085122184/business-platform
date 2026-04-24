@@ -60,19 +60,19 @@ public class SalesAnalysisServiceImpl implements SalesAnalysisService {
 
         MetricType metricType = MetricType.fromCode(type);
 
-        List<CompanyMetricDTO> result = salesAll.stream()
+        return salesAll.stream()
                 .map(s -> {
                     BigDecimal actualValue = new BigDecimal(1);
                     BigDecimal targetValue = new BigDecimal(1);
                     SalesSummary b = null;
                     if (metricType == MetricType.VOLUME) {
-                        b = volumeMap.get(s.getCompanyName());
+                        b = volumeMap.get(s.getCompanyCode());
                         if (b != null) {
                             actualValue = s.getTotalSales().multiply(multiplier);
                             targetValue = b.getTotalCountBudget().multiply(multiplier);
                         }
                     } else {
-                        b = amountMap.get(s.getCompanyName());
+                        b = amountMap.get(s.getCompanyCode());
                         if (b != null) {
                             actualValue = s.getTotalAmount().multiply(multiplier);
                             targetValue = b.getTotalAmountBudget().multiply(multiplier);
@@ -86,7 +86,6 @@ public class SalesAnalysisServiceImpl implements SalesAnalysisService {
                     return item;
                 })
                 .collect(Collectors.toList());
-        return result;
     }
 
     @Override

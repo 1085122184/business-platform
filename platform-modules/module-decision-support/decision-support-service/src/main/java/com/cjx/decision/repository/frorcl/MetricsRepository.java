@@ -50,16 +50,7 @@ public interface MetricsRepository extends Repository<VLvlengRixiaoshou, Long> {
      * 查询销售额预算
      */
     @Query(value = """
-      SELECT SUM(国内销售额预算+国外销售额预算) AS totalAmountBudget FROM
-      (
-      SELECT '绿冷' AS 公司,ROUND(SUMGUONEI,2) AS 国内销售额预算,ROUND(SUMGUOWAI,2) AS 国外销售额预算 FROM ys_xssr_hg WHERE QIJIAN = :targetDate
-      union all
-      SELECT '高分子' AS 公司,ROUND(GUONEI,2) AS 国内销售额预算,ROUND(GUOWAI,2) AS 国外销售额预算 FROM ys_xssr_gfz WHERE QIJIAN = :targetDate
-      union all
-      SELECT '氟硅' AS 公司,ROUND(LVJIAWANNEI ,2)+ROUND(LVJIANNEI ,2) AS 国内销售额预算,ROUND(LVJIAWANWAI ,2)+ROUND(LVJIANWAI ,2) AS 国外销售额预算 FROM ys_xssr_fg  WHERE QIJIAN = :targetDate
-      union all
-      SELECT '有机硅' AS 公司,ROUND(GUONEI,2) AS 国内销售额预算,ROUND(GUOWAI,2) AS 国外销售额预算 FROM YS_XSSR_YJG  WHERE QIJIAN = :targetDate
-      )
+      SELECT 月份,ROUND(SUM(销售额预算),2) totalAmountBudget FROM V_SALES_BUDGET_SUMMARY WHERE 月份 = :targetDate GROUP BY 月份
       """, nativeQuery = true)
     SalesSummary findAmountBudget(@Param("targetDate") String targetDate);
     

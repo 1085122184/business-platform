@@ -21,7 +21,6 @@ public class AllDetailsServiceImpl implements AllDetailsService {
     public List<AllDetails> findSalesDetail(LocalDate targetDate, String companyName) {
         String companyCode = CompanyCodeConstant.COMPANY_CODE_MAP.getOrDefault(companyName,companyName);
         String date = targetDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        System.out.println(123);
         return allDetailsRepository.findSalesDetail(date,companyCode);
     }
 }

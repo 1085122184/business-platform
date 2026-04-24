@@ -18,6 +18,7 @@ public interface SalesSummary {
 
     String getCompanyName();//公司名称
 
+    String getCompanyCode();//公司名称
     String getProductName();//产品
 
     String getProductCode();//产品

@@ -10,4 +10,5 @@ import java.math.BigDecimal;
 public class ProductDeepCustomer {
     private String name;
     private BigDecimal volume;
+    private BigDecimal amount;
 }

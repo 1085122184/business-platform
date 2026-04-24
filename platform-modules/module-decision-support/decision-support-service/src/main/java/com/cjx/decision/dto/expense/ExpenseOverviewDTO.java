@@ -21,7 +21,7 @@ public class ExpenseOverviewDTO {
         @Schema(description = "金额")
         private BigDecimal amount;
         @Schema(description = "单位", example = "亿")
-        private String unit = "亿";
+        private String unit = "万";
         @Schema(description = "占比 (百分比)", example = "45.5")
         private BigDecimal percent;
         @Schema(description = "同比变动 (%)", example = "-5.2")
