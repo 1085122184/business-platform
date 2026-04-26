@@ -143,8 +143,6 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
       """, nativeQuery = true)
     List<SalesSummary> findSummaryByDateDetails(@Param("targetDate") String targetDate);
 
-
-
     @Query(value = """
       SELECT
           CASE 工厂 WHEN '1201' THEN '高分子'
@@ -152,10 +150,11 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
           WHEN '3001' THEN '绿冷'
           WHEN '1400' THEN '有机硅'
           END AS companyName,
+          公司编码 AS companyCode,       
           ROUND(SUM(NVL(销量, 0)), 2) AS totalSales,ROUND(SUM(NVL(金额, 0)), 2) AS totalAmount
           FROM v_sales_detail_all
       WHERE TO_DATE(过账日期, 'YYYY-MM-DD') >= TRUNC(TRUNC(:targetDate) - 1, 'MM') AND TO_DATE(过账日期, 'YYYY-MM-DD') < TRUNC(:targetDate)
-      AND 工厂 IS NOT NULL AND 销量 <> 0  GROUP BY 工厂
+      AND 工厂 IS NOT NULL AND 销量 <> 0  GROUP BY 工厂,公司编码
       """, nativeQuery = true)
     List<SalesSummary> findSummaryTodayDetails(@Param("targetDate") LocalDate targetDate);
 
@@ -164,8 +163,11 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
       """, nativeQuery = true)
     SalesSummary findCountBudget(@Param("targetDate") String targetDate);
 
+    /**
+     * 查询销量预算明细
+     */
     @Query(value = """
-      SELECT 月份,公司 AS companyName,ROUND(SUM(销量预算),2) totalCountBudget FROM V_SALES_BUDGET_SUMMARY WHERE 月份 = :targetDate GROUP BY 月份,公司
+      SELECT 月份,公司编码 AS companyName,ROUND(SUM(销量预算),2) totalCountBudget FROM V_SALES_BUDGET_SUMMARY WHERE 月份 = :targetDate GROUP BY 月份,公司编码
       """, nativeQuery = true)
     List<SalesSummary> findCountBudgetDetails(@Param("targetDate") String targetDate);
 
@@ -183,8 +185,11 @@ public interface SalesRepository extends Repository<VLvlengRixiaoshou, Long> {
       """, nativeQuery = true)
     SalesSummary findAmountBudget(@Param("targetDate") String targetDate);
 
+    /**
+     * 查询销售额预算明细
+     */
     @Query(value = """
-      SELECT 公司 AS companyName,SUM(国内销售额预算+国外销售额预算) AS totalAmountBudget FROM v_sales_budget WHERE QIJIAN = :targetDate GROUP BY 公司
+      SELECT 月份,公司编码 AS companyName,ROUND(SUM(销售额预算),2) totalAmountBudget FROM V_SALES_BUDGET_SUMMARY WHERE 月份 = :targetDate GROUP BY 月份,公司编码
       """, nativeQuery = true)
     List<SalesSummary> findAmountBudgetDetails(@Param("targetDate") String targetDate);
 

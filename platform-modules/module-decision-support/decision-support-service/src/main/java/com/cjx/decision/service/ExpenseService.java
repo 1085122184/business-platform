@@ -42,4 +42,5 @@ public interface ExpenseService {
 
     List<BudgetExecutionDTO> getBudgetExecution(LocalDate date,String dimension);
 
+    List<CompanyGrowthPointDTO> getCompanyGrowthData(String date);
 }

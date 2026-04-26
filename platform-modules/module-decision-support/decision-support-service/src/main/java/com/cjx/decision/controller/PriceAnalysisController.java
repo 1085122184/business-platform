@@ -53,7 +53,8 @@ public class PriceAnalysisController {
     @GetMapping("/deviations/details")
     public Result<List<CustomerTransactionProjection>> getDeviationDetails(
             @NotBlank(message = "产品代码不能为空") @RequestParam String code,
-            @NotBlank(message = "区域不能为空") @RequestParam String region) {
-        return Result.success(dashboardService.findCustomerTransaction(region, code));
+            @NotBlank(message = "区域不能为空") @RequestParam String region,
+            @NotBlank(message = "类型") @RequestParam String type) {
+        return Result.success(dashboardService.findCustomerTransaction(region, code,type));
     }
 }

@@ -41,10 +41,14 @@ public class PriceAnalysisServiceImpl implements PriceAnalysisService {
     }
 
     @Override
-    public List<CustomerTransactionProjection> getCustomerTransactions(String region, String code) {
+    public List<CustomerTransactionProjection> getCustomerTransactions(String region, String code,String type) {
         String regionCode = RegionCode.getCodeByName(region);
-        String yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String key = "customerTransaction:" + yesterday + ":" + code;
-        return priceAnalysisRepository.findCustomerTransaction(regionCode, code, yesterday);
+        String beginDate = LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String endDate = LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        if ("7days".equals(type)){
+            beginDate =  LocalDate.now().minusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        }
+        String key = "customerTransaction:" + endDate + ":" + code;
+        return priceAnalysisRepository.findCustomerTransaction(regionCode, code,beginDate, endDate);
     }
 }

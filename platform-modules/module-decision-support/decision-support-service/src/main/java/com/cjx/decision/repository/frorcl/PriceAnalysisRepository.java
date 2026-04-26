@@ -52,10 +52,11 @@ public interface PriceAnalysisRepository extends Repository<VLvlengRixiaoshou, L
      * 查询客户交易
      */
     @Query(value = """
-      SELECT SUM(销量) AS volume,ROUND(SUM(金额*10000)/SUM(销量),2) AS price,客户名称 AS customer
-      FROM v_sales_detail_all
-      WHERE 过账日期 = :targetDate AND 渠道 = :region AND 物料组= :code AND 物料组描述 <> '无价值物料' AND 销量 <> 0
-      GROUP BY 客户名称
+
+            SELECT SUM(销量) AS volume,ROUND(SUM(金额*10000)/SUM(销量),2) AS price,客户名称 AS customer
+            FROM v_sales_detail_all
+            WHERE 过账日期 >= :beginDate AND 过账日期 <= :endDate AND 渠道 = :region AND 物料组= :code AND 物料组描述 <> '无价值物料' AND 销量 <> 0
+            GROUP BY 客户名称
       """, nativeQuery = true)
-    List<CustomerTransactionProjection> findCustomerTransaction(@Param("region") String region, @Param("code") String code, @Param("targetDate") String targetDate);
+    List<CustomerTransactionProjection> findCustomerTransaction(@Param("region") String region, @Param("code") String code, @Param("beginDate") String beginDate, @Param("endDate") String endDate);
 }

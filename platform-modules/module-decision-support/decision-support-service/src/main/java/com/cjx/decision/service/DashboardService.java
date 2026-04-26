@@ -1,9 +1,6 @@
 package com.cjx.decision.service;
 
-import com.cjx.decision.dto.dashboard.DashboardMetricsDTO;
-import com.cjx.decision.dto.dashboard.DashboardOrdersDTO;
-import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
-import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
+import com.cjx.decision.dto.dashboard.*;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
@@ -56,7 +53,7 @@ public interface DashboardService {
      * @param code 产品代码
      * @return 客户交易列表
      */
-    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code);
+    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type);
     
     // ===== 销售分析 =====
 
@@ -122,7 +119,7 @@ public interface DashboardService {
      * @param date 日期
      * @return 订单详情
      */
-    List<OrderDetail> getOrderCompanyDetails(String companyName, LocalDate date);
+    List<OrderDetailDTO> getOrderCompanyDetails(String companyName, LocalDate date);
 
 
     List<AllDetails> findSalesDetail(@Param("targetDate") LocalDate targetDate, @Param("companyCode") String companyCode);

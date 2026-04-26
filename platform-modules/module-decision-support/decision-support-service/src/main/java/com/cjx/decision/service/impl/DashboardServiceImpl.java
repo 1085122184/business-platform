@@ -1,9 +1,6 @@
 package com.cjx.decision.service.impl;
 
-import com.cjx.decision.dto.dashboard.DashboardMetricsDTO;
-import com.cjx.decision.dto.dashboard.DashboardOrdersDTO;
-import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
-import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
+import com.cjx.decision.dto.dashboard.*;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
@@ -53,8 +50,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
     
     @Override
-    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code) {
-        return priceAnalysisService.getCustomerTransactions(region, code);
+    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type) {
+        return priceAnalysisService.getCustomerTransactions(region, code,type);
     }
     
     @Override
@@ -88,8 +85,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public List<com.cjx.decision.projection.frorcl.OrderDetail> getOrderCompanyDetails(String companyName, LocalDate date) {
-        return orderService.getCompanyDetails(date, companyName);
+    public List<OrderDetailDTO> getOrderCompanyDetails(String companyName, LocalDate date) {
+        return orderService.getOrderWithDetails(date, companyName);
     }
 
     @Override

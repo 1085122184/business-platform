@@ -17,4 +17,6 @@ public interface OrderDetail {
     String getCustomer();
     String getChannel();
 
+
+
 }

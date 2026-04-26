@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.dto.dashboard.OrderDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.dto.salesdetail.ProductDeepDetail;
@@ -71,7 +72,7 @@ public class SalesAnalysisController {
      * @return 订单详情
      */
     @GetMapping("/orders/company-detail")
-    public Result<List<OrderDetail>> getOrderCompanyDetail(
+    public Result<List<OrderDetailDTO>> getOrderCompanyDetail(
             @NotBlank(message = "公司名称不能为空") @RequestParam String companyName,
             @NotNull(message = "日期不能为空") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return Result.success(dashboardService.getOrderCompanyDetails(companyName, date));

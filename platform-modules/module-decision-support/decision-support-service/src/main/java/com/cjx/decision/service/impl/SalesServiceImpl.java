@@ -131,10 +131,8 @@ public class SalesServiceImpl implements SalesService {
 
     @NotNull
     private List<CompanyMetricDTO> getCompanyMetricDTOS(String type, LocalDate targetDate) {
-        List<CompanyMetricDTO> result = new ArrayList<>();
         BigDecimal multiplier = new BigDecimal("1");
-        String yesterday = targetDate.minusDays(1)
-                .format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        String yesterday = targetDate.minusDays(1).format(DateTimeFormatter.ofPattern("yyyy-MM"));
         List<SalesSummary> volumeBudget = salesRepository.findCountBudgetDetails(yesterday);
         List<SalesSummary> amountBudget = salesRepository.findAmountBudgetDetails(yesterday);
         List<SalesSummary> salesAll = salesRepository.findSummaryTodayDetails(targetDate);
@@ -142,22 +140,22 @@ public class SalesServiceImpl implements SalesService {
                 .collect(Collectors.toMap(SalesSummary::getCompanyName, b -> b, (a, b) -> a));
         Map<String, SalesSummary> amountMap = amountBudget.stream()
                 .collect(Collectors.toMap(SalesSummary::getCompanyName, b -> b, (a, b) -> a));
-        
+
         MetricType metricType = MetricType.fromCode(type);
-        
-        result = salesAll.stream()
+
+        return salesAll.stream()
                 .map(s -> {
                     BigDecimal actualValue = new BigDecimal(1);
                     BigDecimal targetValue = new BigDecimal(1);
                     SalesSummary b = null;
                     if (metricType == MetricType.VOLUME) {
-                        b = volumeMap.get(s.getCompanyName());
+                        b = volumeMap.get(s.getCompanyCode());
                         if (b != null) {
                             actualValue = s.getTotalSales().multiply(multiplier);
                             targetValue = b.getTotalCountBudget().multiply(multiplier);
                         }
                     } else {
-                        b = amountMap.get(s.getCompanyName());
+                        b = amountMap.get(s.getCompanyCode());
                         if (b != null) {
                             actualValue = s.getTotalAmount().multiply(multiplier);
                             targetValue = b.getTotalAmountBudget().multiply(multiplier);
@@ -171,7 +169,6 @@ public class SalesServiceImpl implements SalesService {
                     return item;
                 })
                 .collect(Collectors.toList());
-        return result;
     }
 
     @Override

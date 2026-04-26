@@ -70,4 +70,19 @@ public interface ExpenseRepository extends Repository<VLvlengRixiaoshou, String>
             "WHERE 月份 BETWEEN :startDay AND :thisDay GROUP BY 公司 ", nativeQuery = true)
     List<Map<String, Object>> getBudget(String startDay,String thisDay);
 
+
+
+    @Query(value = "SELECT 公司名称 as companyName, SUM(期末余额) as totalAmount " +
+            "FROM dwm_v_jt_sanfei " +
+            "WHERE 月份 = :month " +
+            "GROUP BY 公司名称", nativeQuery = true)
+    List<Map<String, Object>> findCompanyMonthlySums(String month);
+
+
+    @Query(value = "SELECT 项目 as expenseType, SUM(期末余额) as totalAmount " +
+            "FROM dwm_v_jt_sanfei " +
+            "WHERE 月份 = :month " +
+            "GROUP BY 项目", nativeQuery = true)
+    List<Map<String, Object>> findExpenseOverviewByMonth(String month);
+
 }

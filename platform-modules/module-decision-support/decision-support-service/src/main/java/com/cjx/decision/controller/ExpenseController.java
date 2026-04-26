@@ -66,5 +66,9 @@ public class ExpenseController {
         return Result.success(expenseService.getBudgetExecution(date,dimension));
     }
 
+    @GetMapping("/growth")
+    public Result<List<CompanyGrowthPointDTO>> getCompanyGrowth(@RequestParam String date) {
+        return Result.success(expenseService.getCompanyGrowthData(date));
+    }
 
 }

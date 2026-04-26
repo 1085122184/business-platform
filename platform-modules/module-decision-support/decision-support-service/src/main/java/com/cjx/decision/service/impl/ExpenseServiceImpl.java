@@ -13,10 +13,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -57,7 +54,7 @@ public class ExpenseServiceImpl implements ExpenseService {
         total.setUnit("万");
 
         // 生成文字描述 (例如：同比上升 ¥1.25亿)
-        double diff = (curTotal - lstTotal) / 1_0000_0000.0;
+        double diff = (curTotal - lstTotal);
         String desc = diff > 0 ? String.format("同比上升 ¥%.2f万", diff) : String.format("同比下降 ¥%.2f万", Math.abs(diff));
         total.setYoyChangeText(desc);
 
@@ -218,6 +215,63 @@ public class ExpenseServiceImpl implements ExpenseService {
             resultList.add(budgetExecutionDTO);
         });
         return resultList;
+    }
+
+    @Override
+    public List<CompanyGrowthPointDTO> getCompanyGrowthData(String date) {
+        // 1. 解析日期并计算 同比(去年同月) 和 环比(上个月) 的月份字符串
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM");
+        LocalDate current = LocalDate.parse(date.substring(0, 7) + "-01");
+
+        String currentMonth = current.format(df);
+        String yoyMonth = current.minusYears(1).format(df);
+        String momMonth = current.minusMonths(1).format(df);
+
+        // 2. 分别获取三个月份的数据
+        Map<String, BigDecimal> currentMap = convertToMap(expenseRepository.findCompanyMonthlySums(currentMonth));
+        Map<String, BigDecimal> yoyMap = convertToMap(expenseRepository.findCompanyMonthlySums(yoyMonth));
+        Map<String, BigDecimal> momMap = convertToMap(expenseRepository.findCompanyMonthlySums(momMonth));
+
+        // 3. 获取所有出现的公司名称并进行逻辑组装
+        Set<String> allCompanies = new HashSet<>(currentMap.keySet());
+
+        return allCompanies.stream().map(company -> {
+            BigDecimal curVal = currentMap.getOrDefault(company, BigDecimal.ZERO);
+            BigDecimal yoyVal = yoyMap.getOrDefault(company, BigDecimal.ZERO);
+            BigDecimal momVal = momMap.getOrDefault(company, BigDecimal.ZERO);
+
+            return CompanyGrowthPointDTO.builder()
+                    .companyName(company)
+                    .currentValue(curVal.setScale(2, RoundingMode.HALF_UP))
+                    .yoyValue(yoyVal.setScale(2, RoundingMode.HALF_UP))
+                    .momValue(momVal.setScale(2, RoundingMode.HALF_UP))
+                    .yoy(calculateGrowthRate(curVal, yoyVal))
+                    .mom(calculateGrowthRate(curVal, momVal))
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * 计算增长率逻辑：((本期 - 比较期) / abs(比较期)) * 100
+     */
+    private BigDecimal calculateGrowthRate(BigDecimal now, BigDecimal before) {
+        if (before == null || before.compareTo(BigDecimal.ZERO) == 0) {
+            return now.compareTo(BigDecimal.ZERO) > 0 ? new BigDecimal("100") : BigDecimal.ZERO;
+        }
+        // 增长额 = 本期 - 比较期
+        BigDecimal diff = now.subtract(before);
+        // 基数取绝对值
+        BigDecimal base = before.abs();
+
+        return diff.multiply(new BigDecimal("100"))
+                .divide(base, 2, RoundingMode.HALF_UP);
+    }
+
+    private Map<String, BigDecimal> convertToMap(List<Map<String, Object>> list) {
+        return list.stream().collect(Collectors.toMap(
+                m -> String.valueOf(m.get("companyName")),
+                m -> m.get("totalAmount") != null ? new BigDecimal(m.get("totalAmount").toString()) : BigDecimal.ZERO
+        ));
     }
 
     // ---------------- 私有辅助方法 ----------------
