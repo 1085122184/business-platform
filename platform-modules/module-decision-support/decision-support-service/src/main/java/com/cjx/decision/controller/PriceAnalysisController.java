@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
 import com.cjx.decision.service.DashboardService;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +31,7 @@ import java.util.List;
 @Validated
 @Tag(name = "价格分析", description = "查询价格偏差和客户交易数据")
 @CrossOrigin(origins = "*")
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRICE_ANALYSIS_VIEW)")
 public class PriceAnalysisController {
     
     private final DashboardService dashboardService;

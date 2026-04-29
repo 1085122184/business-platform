@@ -35,3 +35,8 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
   show-actuator: true
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY:business-platform-decision-support-jwt-secret-key-2026-please-change}
+  expiration: 7200000
+  refresh-time: 259200000

@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.service.DashboardService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +30,7 @@ import java.util.List;
 @Validated
 @Tag(name = "回款分析", description = "查询回款公司列表数据")
 @CrossOrigin(origins = "*")
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).COLLECTION_ANALYSIS_VIEW)")
 public class CollectionController {
     
     private final DashboardService dashboardService;

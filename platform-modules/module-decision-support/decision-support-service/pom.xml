@@ -30,6 +30,11 @@
 
     <dependency>
       <groupId>com.cjx</groupId>
+      <artifactId>common-security</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.cjx</groupId>
       <artifactId>common-jpa</artifactId>
     </dependency>
 
