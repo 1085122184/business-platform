@@ -19,4 +19,9 @@ public interface SysUserRoleRepository extends JpaRepository<SysUserRole, SysUse
 
     @Query("select ur.id.userId from SysUserRole ur where ur.id.roleId = :roleId")
     List<Long> findUserIdsByRoleId(@Param("roleId") Long roleId);
+
+    @Query("select ur.id.roleId from SysUserRole ur where ur.id.userId = :userId")
+    List<Long> findRoleIdsByUserId(@Param("userId") Long userId);
+
+    void deleteByIdUserId(Long userId);
 }

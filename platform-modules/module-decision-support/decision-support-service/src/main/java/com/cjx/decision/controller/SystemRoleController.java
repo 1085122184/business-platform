@@ -7,6 +7,10 @@ import com.cjx.decision.dto.system.role.RolePageResponse;
 import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleSaveRequest;
 import com.cjx.decision.dto.system.role.RoleUpdateRequest;
+import com.cjx.decision.dto.system.user.UserCreateRequest;
+import com.cjx.decision.dto.system.user.UserPageResponse;
+import com.cjx.decision.dto.system.user.UserQueryRequest;
+import com.cjx.decision.dto.system.user.UserUpdateRequest;
 import com.cjx.decision.service.SystemRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +53,34 @@ public class SystemRoleController {
     @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).ADD)")
     public Result<Long> createRole(@Valid @RequestBody RoleSaveRequest request) {
         return Result.success("新增成功", systemRoleService.createRole(request));
+    }
+
+    @Operation(summary = "新增账号")
+    @PostMapping("/users")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).ADD)")
+    public Result<Long> createUser(@Valid @RequestBody UserCreateRequest request) {
+        return Result.success("新增成功", systemRoleService.createUser(request));
+    }
+
+    @Operation(summary = "分页查询账号")
+    @GetMapping("/users")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).LIST)")
+    public Result<UserPageResponse> pageUsers(@Valid UserQueryRequest request) {
+        return Result.success(systemRoleService.pageUsers(request));
+    }
+
+    @Operation(summary = "修改账号")
+    @PutMapping("/users")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).EDIT)")
+    public Result<Boolean> updateUser(@Valid @RequestBody UserUpdateRequest request) {
+        return Result.success("修改成功", systemRoleService.updateUser(request));
+    }
+
+    @Operation(summary = "删除账号")
+    @DeleteMapping("/users/{id}")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).REMOVE)")
+    public Result<Boolean> deleteUser(@PathVariable("id") Long userId) {
+        return Result.success("删除成功", systemRoleService.deleteUser(userId));
     }
 
     @Operation(summary = "修改角色")

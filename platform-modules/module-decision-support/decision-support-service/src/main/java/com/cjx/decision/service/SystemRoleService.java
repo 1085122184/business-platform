@@ -5,6 +5,10 @@ import com.cjx.decision.dto.system.role.RolePageResponse;
 import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleSaveRequest;
 import com.cjx.decision.dto.system.role.RoleUpdateRequest;
+import com.cjx.decision.dto.system.user.UserCreateRequest;
+import com.cjx.decision.dto.system.user.UserPageResponse;
+import com.cjx.decision.dto.system.user.UserQueryRequest;
+import com.cjx.decision.dto.system.user.UserUpdateRequest;
 
 import java.util.List;
 
@@ -16,6 +20,14 @@ public interface SystemRoleService {
     RolePageResponse pageRoles(RoleQueryRequest request);
 
     Long createRole(RoleSaveRequest request);
+
+    Long createUser(UserCreateRequest request);
+
+    UserPageResponse pageUsers(UserQueryRequest request);
+
+    boolean updateUser(UserUpdateRequest request);
+
+    boolean deleteUser(Long userId);
 
     boolean updateRole(RoleUpdateRequest request);
 

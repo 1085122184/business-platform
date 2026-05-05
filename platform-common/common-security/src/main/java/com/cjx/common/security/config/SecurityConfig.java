@@ -53,6 +53,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/dingtalk/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/dingtalk/bridge-login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login-ticket/consume").permitAll()
                         .requestMatchers(WHITE_LIST).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

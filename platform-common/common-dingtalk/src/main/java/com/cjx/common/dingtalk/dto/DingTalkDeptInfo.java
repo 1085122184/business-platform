@@ -1,5 +1,6 @@
 package com.cjx.common.dingtalk.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ import java.io.Serializable;
  * @author system
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DingTalkDeptInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 

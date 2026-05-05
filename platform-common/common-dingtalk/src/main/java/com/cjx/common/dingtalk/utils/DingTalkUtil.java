@@ -8,7 +8,6 @@ import com.cjx.common.dingtalk.config.DingTalkCacheConfig;
 import com.cjx.common.dingtalk.config.DingTalkConfig;
 import com.cjx.common.dingtalk.dto.DingTalkApiResponse;
 import com.cjx.common.dingtalk.dto.DingTalkDeptInfo;
-import com.cjx.common.dingtalk.dto.DingTalkMessageResult;
 import com.cjx.common.dingtalk.dto.DingTalkUserInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -123,6 +123,7 @@ public class DingTalkUtil {
         String signature = DigestUtil.sha1Hex(plain.getBytes(StandardCharsets.UTF_8));
 
         Map<String, String> map = new HashMap<>();
+        map.put("corpId", dingTalkConfig.getCorpId());
         map.put("agentId", String.valueOf(dingTalkConfig.getAgentId()));
         map.put("appKey", dingTalkConfig.getAppKey());
         map.put("timeStamp", String.valueOf(timeStamp));
@@ -310,6 +311,26 @@ public class DingTalkUtil {
         return okHttpUtil.postObject(url, params);
     }
 
+    /**
+     * Get DingTalk userId by unionId.
+     */
+    public String getUserIdByUnionId(String unionId) throws Exception {
+        String accessToken = getAccessToken();
+        String url = dingTalkConfig.getApiUrl() + "/topapi/user/getbyunionid?access_token=" + accessToken;
+        Map<String, Object> params = new HashMap<>();
+        params.put("unionid", unionId);
+
+        String result = okHttpUtil.postJson(url, OBJECT_MAPPER.writeValueAsString(params));
+        Map<String, Object> response = OBJECT_MAPPER.readValue(result, Map.class);
+        Object errcode = response.get("errcode");
+        if (errcode instanceof Number number && number.intValue() == 0) {
+            Object userId = response.get("userid");
+            return userId instanceof String ? (String) userId : null;
+        }
+        log.error("Failed to get userId by unionId: {}", result);
+        throw new RuntimeException("根据unionId获取userId失败");
+    }
+
     // ==================== 部门管理 ====================
 
     /**
@@ -378,13 +399,44 @@ public class DingTalkUtil {
     // ==================== 登录授权 ====================
 
     /**
+     * Build desktop browser OAuth authorize url.
+     */
+    public String buildDesktopOAuthAuthorizeUrl(String state) {
+        if (dingTalkConfig.getAppKey() == null || dingTalkConfig.getOauthRedirectUri() == null) {
+            throw new IllegalStateException("DingTalk browser OAuth config is incomplete");
+        }
+        String encodedRedirectUri = URLEncoder.encode(dingTalkConfig.getOauthRedirectUri(), StandardCharsets.UTF_8);
+        String encodedState = URLEncoder.encode(state == null ? "" : state, StandardCharsets.UTF_8);
+        return "https://login.dingtalk.com/oauth2/auth?"
+                + "redirect_uri=" + encodedRedirectUri
+                + "&response_type=code"
+                + "&client_id=" + dingTalkConfig.getAppKey()
+                + "&scope=openid"
+                + "&state=" + encodedState
+                + "&prompt=consent";
+    }
+
+
+    /**
+     * Get current user profile from a browser OAuth user access token.
+     */
+    public DingTalkUserInfo getUserInfoByUserAccessToken(String userAccessToken) throws Exception {
+        String url = "https://api.dingtalk.com/v1.0/contact/users/me";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("x-acs-dingtalk-access-token", userAccessToken);
+
+        String result = okHttpUtil.get(url, headers);
+        return OBJECT_MAPPER.readValue(result, DingTalkUserInfo.class);
+    }
+
+    /**
      * 根据authCode获取用户信息
      * @param authCode 授权码
      * @return 用户信息对象
      */
     public DingTalkUserInfo getUserInfoByAuthCode(String authCode) throws Exception {
         String accessToken = getAccessToken();
-        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/getuserinfo";
+        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/getuserinfo?access_token=" + accessToken;
 
         Map<String, Object> params = new HashMap<>();
         params.put("code", authCode);
@@ -407,7 +459,7 @@ public class DingTalkUtil {
      */
     public DingTalkUserInfo getUserDetail(String userId) throws Exception {
         String accessToken = getAccessToken();
-        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/get";
+        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/get?access_token=" + accessToken;
 
         Map<String, Object> params = new HashMap<>();
         params.put("userid", userId);

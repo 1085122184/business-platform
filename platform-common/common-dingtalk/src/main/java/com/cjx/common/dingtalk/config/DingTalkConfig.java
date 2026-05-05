@@ -14,6 +14,11 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "app.ding-talk")
 public class DingTalkConfig {
     /**
+     * Corp ID for DingTalk JSAPI passwordless login.
+     */
+    private String corpId;
+
+    /**
      * 企业ID
      */
     private String appKey;
@@ -42,4 +47,9 @@ public class DingTalkConfig {
      * 钉钉API地址
      */
     private String apiUrl = "https://oapi.dingtalk.com";
+
+    /**
+     * Browser OAuth redirect uri for desktop DingTalk users.
+     */
+    private String oauthRedirectUri;
 }

@@ -46,6 +46,12 @@ public class SysUser extends OracleAuditEntity {
     @Column(name = "MOBILE", length = 30)
     private String mobile;
 
+    @Column(name = "DING_USER_ID", length = 64)
+    private String dingUserId;
+
+    @Column(name = "DING_UNION_ID", length = 64)
+    private String dingUnionId;
+
     @Column(name = "STATUS", nullable = false)
     private Integer status;
 

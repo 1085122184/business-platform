@@ -5,11 +5,17 @@ import com.cjx.common.core.enums.ResultCode;
 import com.cjx.common.core.exception.BusinessException;
 import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.common.core.utils.ThreadLocalUtil;
+import com.cjx.common.dingtalk.dto.DingTalkUserInfo;
+import com.cjx.common.dingtalk.utils.DingTalkUtil;
 import com.cjx.common.security.config.JwtConfig;
 import com.cjx.common.security.utils.JwtUtil;
 import com.cjx.decision.dto.auth.AuthProfileResponse;
+import com.cjx.decision.dto.auth.DingTalkBridgeResponse;
+import com.cjx.decision.dto.auth.DingTalkLoginRequest;
 import com.cjx.decision.dto.auth.LoginRequest;
 import com.cjx.decision.dto.auth.LoginResponse;
+import com.cjx.decision.dto.auth.LoginTicketRequest;
+import com.cjx.decision.dto.auth.LoginTicketResponse;
 import com.cjx.decision.dto.auth.LoginUserInfoResponse;
 import com.cjx.decision.entity.frorcl.system.SysLoginLog;
 import com.cjx.decision.entity.frorcl.system.SysUser;
@@ -42,7 +48,8 @@ import java.util.UUID;
 public class SystemAuthServiceImpl implements SystemAuthService {
 
     private static final String NORMAL_DEL_FLAG = "0";
-
+    private static final String LOGIN_TICKET_CACHE_PREFIX = "login-ticket:";
+    private static final int LOGIN_TICKET_EXPIRES_IN_SECONDS = 120;
     private final SysUserRepository sysUserRepository;
     private final SysRoleRepository sysRoleRepository;
     private final SysMenuRepository sysMenuRepository;
@@ -51,6 +58,7 @@ public class SystemAuthServiceImpl implements SystemAuthService {
     private final JwtConfig jwtConfig;
     private final PasswordEncoder passwordEncoder;
     private final CaffeineCacheService caffeineCacheService;
+    private final DingTalkUtil dingTalkUtil;
 
     @Override
     public LoginResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
@@ -70,29 +78,109 @@ public class SystemAuthServiceImpl implements SystemAuthService {
             throw unauthorized(username, user.getId(), loginIp, userAgent, "用户名或密码错误");
         }
 
-        List<String> roles = sysRoleRepository.findRoleKeysByUserId(user.getId());
-        List<String> permissions = sysMenuRepository.findPermissionsByUserId(user.getId());
-        Set<String> permissionSet = new LinkedHashSet<>(permissions);
-
-        String accessToken = jwtUtil.generateToken(user.getId(), user.getUsername(), permissionSet);
-        String refreshToken = UUID.randomUUID().toString().replace("-", "");
-
-        caffeineCacheService.put(CacheType.USER_PERMISSIONS, permissionCacheKey(user.getId()), permissionSet);
-
-        user.setLastLoginTime(LocalDateTime.now());
-        user.setLastLoginIp(loginIp);
-        sysUserRepository.save(user);
         writeLoginLog(user.getId(), username, loginIp, userAgent, 1, "登录成功");
+        return buildLoginResponse(user, loginIp);
+    }
 
-        LoginResponse response = new LoginResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setTokenType("Bearer");
-        response.setExpiresIn(jwtConfig.getExpiration() / 1000);
-        response.setUserInfo(toUserInfo(user));
-        response.setRoles(roles);
-        response.setPermissions(List.copyOf(permissionSet));
-        return response;
+    @Override
+    public LoginResponse loginByDingTalk(DingTalkLoginRequest request, HttpServletRequest httpServletRequest) {
+        String loginIp = resolveClientIp(httpServletRequest);
+        String userAgent = resolveUserAgent(httpServletRequest);
+
+        try {
+            DingTalkUserInfo codeUserInfo = dingTalkUtil.getUserInfoByAuthCode(request.getAuthCode());
+            String dingUserId = codeUserInfo.getUserId();
+            if (!StringUtils.hasText(dingUserId)) {
+                throw unauthorized("dingtalk", null, loginIp, userAgent, "钉钉用户ID为空");
+            }
+
+            DingTalkUserInfo detail = dingTalkUtil.getUserDetail(dingUserId);
+            SysUser user = resolveDingTalkUser(dingUserId, detail, loginIp, userAgent);
+            if (!Integer.valueOf(1).equals(user.getStatus())) {
+                writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 0, "用户已禁用");
+                throw new BusinessException(String.valueOf(ResultCode.USER_DISABLED.getCode()), "用户已禁用");
+            }
+
+            if (!dingUserId.equals(user.getDingUserId())) {
+                user.setDingUserId(dingUserId);
+            }
+            fillUserProfileFromDingTalk(user, detail);
+            fillDingTalkIdentity(user, codeUserInfo, detail);
+            writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 1, "钉钉免密登录成功");
+            return buildLoginResponse(user, loginIp);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("DingTalk login failed", e);
+            throw new BusinessException(String.valueOf(ResultCode.UNAUTHORIZED.getCode()), "钉钉免密登录失败");
+        }
+    }
+
+    @Override
+    public DingTalkBridgeResponse createPcBridgeLogin(DingTalkLoginRequest request, String redirect, HttpServletRequest httpServletRequest) {
+        String loginIp = resolveClientIp(httpServletRequest);
+        String userAgent = resolveUserAgent(httpServletRequest);
+
+        try {
+            DingTalkUserInfo codeUserInfo = dingTalkUtil.getUserInfoByAuthCode(request.getAuthCode());
+            String dingUserId = codeUserInfo.getUserId();
+            if (!StringUtils.hasText(dingUserId)) {
+                throw unauthorized("dingtalk-bridge", null, loginIp, userAgent, "钉钉用户ID为空");
+            }
+
+            DingTalkUserInfo detail = dingTalkUtil.getUserDetail(dingUserId);
+            SysUser user = resolveDingTalkUser(dingUserId, detail, loginIp, userAgent);
+            if (!Integer.valueOf(1).equals(user.getStatus())) {
+                writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 0, "用户已禁用");
+                throw new BusinessException(String.valueOf(ResultCode.USER_DISABLED.getCode()), "用户已禁用");
+            }
+
+            if (!dingUserId.equals(user.getDingUserId())) {
+                user.setDingUserId(dingUserId);
+            }
+            fillUserProfileFromDingTalk(user, detail);
+            fillDingTalkIdentity(user, codeUserInfo, detail);
+            writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 1, "钉钉 PC 中转登录成功");
+
+            LoginTicketResponse ticketResponse = createLoginTicket(user, loginIp);
+            String targetRedirect = StringUtils.hasText(redirect) ? redirect.trim() : "/";
+            String externalUrl = "/login?loginTicket=" + ticketResponse.getTicket()
+                    + "&redirect=" + java.net.URLEncoder.encode(targetRedirect, java.nio.charset.StandardCharsets.UTF_8);
+
+            DingTalkBridgeResponse response = new DingTalkBridgeResponse();
+            response.setExternalUrl(externalUrl);
+            response.setExpiresIn(ticketResponse.getExpiresIn());
+            return response;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("DingTalk PC bridge login failed", e);
+            throw new BusinessException(String.valueOf(ResultCode.UNAUTHORIZED.getCode()), "钉钉 PC 中转登录失败");
+        }
+    }
+
+    @Override
+    public LoginResponse consumeLoginTicket(LoginTicketRequest request, HttpServletRequest httpServletRequest) {
+        String ticket = request.getTicket().trim();
+        String cacheKey = loginTicketCacheKey(ticket);
+        LoginTicketPayload payload = caffeineCacheService.get(CacheType.TOKEN, cacheKey, LoginTicketPayload.class);
+        caffeineCacheService.remove(CacheType.TOKEN, cacheKey);
+        String loginIp = resolveClientIp(httpServletRequest);
+        String userAgent = resolveUserAgent(httpServletRequest);
+
+        if (payload == null || payload.expiresAt().isBefore(LocalDateTime.now())) {
+            throw unauthorized("login-ticket", null, loginIp, userAgent, "login ticket expired or invalid");
+        }
+
+        SysUser user = sysUserRepository.findByIdAndDelFlag(payload.userId(), NORMAL_DEL_FLAG)
+                .orElseThrow(() -> unauthorized("login-ticket", payload.userId(), loginIp, userAgent, "user does not exist"));
+        if (!Integer.valueOf(1).equals(user.getStatus())) {
+            writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 0, "user disabled");
+            throw new BusinessException(String.valueOf(ResultCode.USER_DISABLED.getCode()), "user disabled");
+        }
+
+        writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 1, "one-time login ticket consumed");
+        return buildLoginResponse(user, loginIp);
     }
 
     @Override
@@ -144,6 +232,103 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         return userInfo;
     }
 
+    private LoginResponse buildLoginResponse(SysUser user, String loginIp) {
+        List<String> roles = sysRoleRepository.findRoleKeysByUserId(user.getId());
+        List<String> permissions = sysMenuRepository.findPermissionsByUserId(user.getId());
+        Set<String> permissionSet = new LinkedHashSet<>(permissions);
+
+        String accessToken = jwtUtil.generateToken(user.getId(), user.getUsername(), permissionSet);
+        String refreshToken = UUID.randomUUID().toString().replace("-", "");
+
+        caffeineCacheService.put(CacheType.USER_PERMISSIONS, permissionCacheKey(user.getId()), permissionSet);
+
+        user.setLastLoginTime(LocalDateTime.now());
+        user.setLastLoginIp(loginIp);
+        sysUserRepository.save(user);
+
+        LoginResponse response = new LoginResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setTokenType("Bearer");
+        response.setExpiresIn(jwtConfig.getExpiration() / 1000);
+        response.setUserInfo(toUserInfo(user));
+        response.setRoles(roles);
+        response.setPermissions(List.copyOf(permissionSet));
+        return response;
+    }
+
+    private LoginTicketResponse createLoginTicket(SysUser user, String loginIp) {
+        String ticket = UUID.randomUUID().toString().replace("-", "");
+        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(LOGIN_TICKET_EXPIRES_IN_SECONDS);
+        caffeineCacheService.put(CacheType.TOKEN, loginTicketCacheKey(ticket), new LoginTicketPayload(user.getId(), expiresAt));
+
+        user.setLastLoginTime(LocalDateTime.now());
+        user.setLastLoginIp(loginIp);
+        sysUserRepository.save(user);
+
+        LoginTicketResponse response = new LoginTicketResponse();
+        response.setTicket(ticket);
+        response.setExpiresIn(LOGIN_TICKET_EXPIRES_IN_SECONDS);
+        return response;
+    }
+
+    private SysUser resolveDingTalkUser(String dingUserId,
+                                        DingTalkUserInfo detail,
+                                        String loginIp,
+                                        String userAgent) {
+        return sysUserRepository.findByDingUserIdAndDelFlag(dingUserId, NORMAL_DEL_FLAG)
+                .or(() -> findAndBindByMobile(dingUserId, detail))
+                .orElseThrow(() -> {
+                    String username = detail != null && StringUtils.hasText(detail.getMobile())
+                            ? detail.getMobile()
+                            : dingUserId;
+                    return unauthorized(username, null, loginIp, userAgent, "钉钉账号未绑定系统用户");
+                });
+    }
+
+    private java.util.Optional<SysUser> findAndBindByMobile(String dingUserId, DingTalkUserInfo detail) {
+        if (detail == null || !StringUtils.hasText(detail.getMobile())) {
+            return java.util.Optional.empty();
+        }
+        return sysUserRepository.findByMobileAndDelFlag(detail.getMobile(), NORMAL_DEL_FLAG)
+                .map(user -> {
+                    user.setDingUserId(dingUserId);
+                    fillUserProfileFromDingTalk(user, detail);
+                    fillDingTalkIdentity(user, null, detail);
+                    return user;
+                });
+    }
+
+    private void fillDingTalkIdentity(SysUser user, DingTalkUserInfo codeUserInfo, DingTalkUserInfo detail) {
+        String unionId = null;
+        if (detail != null && StringUtils.hasText(detail.getUnionId())) {
+            unionId = detail.getUnionId();
+        } else if (codeUserInfo != null && StringUtils.hasText(codeUserInfo.getUnionId())) {
+            unionId = codeUserInfo.getUnionId();
+        }
+        if (StringUtils.hasText(unionId)) {
+            user.setDingUnionId(unionId);
+        }
+    }
+
+    private void fillUserProfileFromDingTalk(SysUser user, DingTalkUserInfo detail) {
+        if (detail == null) {
+            return;
+        }
+        if (StringUtils.hasText(detail.getName()) && !StringUtils.hasText(user.getRealName())) {
+            user.setRealName(detail.getName());
+        }
+        if (StringUtils.hasText(detail.getName()) && !StringUtils.hasText(user.getNickname())) {
+            user.setNickname(detail.getName());
+        }
+        if (StringUtils.hasText(detail.getMobile()) && !StringUtils.hasText(user.getMobile())) {
+            user.setMobile(detail.getMobile());
+        }
+        if (StringUtils.hasText(detail.getEmail()) && !StringUtils.hasText(user.getEmail())) {
+            user.setEmail(detail.getEmail());
+        }
+    }
+
     private void writeLoginLog(Long userId,
                                String username,
                                String loginIp,
@@ -193,5 +378,12 @@ public class SystemAuthServiceImpl implements SystemAuthService {
 
     private String permissionCacheKey(Long userId) {
         return "perms:" + userId;
+    }
+
+    private String loginTicketCacheKey(String ticket) {
+        return LOGIN_TICKET_CACHE_PREFIX + ticket;
+    }
+
+    private record LoginTicketPayload(Long userId, LocalDateTime expiresAt) {
     }
 }

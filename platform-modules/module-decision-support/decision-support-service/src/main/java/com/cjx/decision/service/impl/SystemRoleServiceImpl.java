@@ -11,13 +11,22 @@ import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleResponse;
 import com.cjx.decision.dto.system.role.RoleSaveRequest;
 import com.cjx.decision.dto.system.role.RoleUpdateRequest;
+import com.cjx.decision.dto.system.user.UserCreateRequest;
+import com.cjx.decision.dto.system.user.UserPageResponse;
+import com.cjx.decision.dto.system.user.UserQueryRequest;
+import com.cjx.decision.dto.system.user.UserResponse;
+import com.cjx.decision.dto.system.user.UserUpdateRequest;
 import com.cjx.decision.entity.frorcl.system.SysMenu;
 import com.cjx.decision.entity.frorcl.system.SysRole;
 import com.cjx.decision.entity.frorcl.system.SysRoleMenu;
 import com.cjx.decision.entity.frorcl.system.SysRoleMenuId;
+import com.cjx.decision.entity.frorcl.system.SysUser;
+import com.cjx.decision.entity.frorcl.system.SysUserRole;
+import com.cjx.decision.entity.frorcl.system.SysUserRoleId;
 import com.cjx.decision.repository.frorcl.system.SysMenuRepository;
 import com.cjx.decision.repository.frorcl.system.SysRoleMenuRepository;
 import com.cjx.decision.repository.frorcl.system.SysRoleRepository;
+import com.cjx.decision.repository.frorcl.system.SysUserRepository;
 import com.cjx.decision.repository.frorcl.system.SysUserRoleRepository;
 import com.cjx.decision.service.SystemRoleService;
 import jakarta.persistence.criteria.Predicate;
@@ -27,6 +36,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -50,9 +60,11 @@ public class SystemRoleServiceImpl implements SystemRoleService {
     private final SysRoleRepository sysRoleRepository;
     private final SysMenuRepository sysMenuRepository;
     private final SysRoleMenuRepository sysRoleMenuRepository;
+    private final SysUserRepository sysUserRepository;
     private final SysUserRoleRepository sysUserRoleRepository;
     private final CaffeineCacheService caffeineCacheService;
     private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     private volatile Boolean userRoleTableAvailable;
 
@@ -85,6 +97,101 @@ public class SystemRoleServiceImpl implements SystemRoleService {
         applyRolePayload(role, request);
         SysRole saved = sysRoleRepository.save(role);
         return saved.getId();
+    }
+
+    @Override
+    public Long createUser(UserCreateRequest request) {
+        String username = request.getUsername().trim();
+        if (sysUserRepository.existsByUsernameAndDelFlag(username, "0")) {
+            throw new BusinessException("username already exists");
+        }
+        if (StringUtils.hasText(request.getMobile())
+                && sysUserRepository.existsByMobileAndDelFlag(request.getMobile().trim(), "0")) {
+            throw new BusinessException("mobile already exists");
+        }
+
+        Set<Long> roleIds = new LinkedHashSet<>(request.getRoleIds());
+        validateRoleIds(roleIds);
+
+        SysUser user = new SysUser();
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setNickname(trimToNull(request.getNickname()));
+        user.setRealName(trimToNull(request.getRealName()));
+        user.setEmail(trimToNull(request.getEmail()));
+        user.setMobile(trimToNull(request.getMobile()));
+        user.setStatus(request.getStatus());
+        user.setDelFlag("0");
+
+        SysUser savedUser = sysUserRepository.save(user);
+        List<SysUserRole> relations = roleIds.stream()
+                .map(roleId -> {
+                    SysUserRole relation = new SysUserRole();
+                    relation.setId(new SysUserRoleId(savedUser.getId(), roleId));
+                    return relation;
+                })
+                .toList();
+        sysUserRoleRepository.saveAll(relations);
+        return savedUser.getId();
+    }
+
+    @Override
+    @Transactional(readOnly = true, transactionManager = "frorclTransactionManager")
+    public UserPageResponse pageUsers(UserQueryRequest request) {
+        Pageable pageable = JpaQueryHelper.createPageable(
+                request.getPageNum(),
+                request.getPageSize(),
+                Sort.by(Sort.Order.desc("createTime"), Sort.Order.asc("id"))
+        );
+        Page<SysUser> page = sysUserRepository.findAll(buildUserSpecification(request), pageable);
+        List<UserResponse> items = page.getContent().stream()
+                .map(this::toUserResponse)
+                .toList();
+
+        UserPageResponse response = new UserPageResponse();
+        response.setList(items);
+        response.setRows(items);
+        response.setTotal(page.getTotalElements());
+        response.setPageNum(request.getPageNum());
+        response.setPageSize(request.getPageSize());
+        return response;
+    }
+
+    @Override
+    public boolean updateUser(UserUpdateRequest request) {
+        SysUser user = sysUserRepository.findByIdAndDelFlag(request.getId(), "0")
+                .orElseThrow(() -> new BusinessException("user does not exist"));
+        if (StringUtils.hasText(request.getMobile())
+                && sysUserRepository.existsByMobileAndDelFlagAndIdNot(request.getMobile().trim(), "0", request.getId())) {
+            throw new BusinessException("mobile already exists");
+        }
+
+        Set<Long> roleIds = new LinkedHashSet<>(request.getRoleIds());
+        validateRoleIds(roleIds);
+
+        if (StringUtils.hasText(request.getPassword())) {
+            user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
+        user.setNickname(trimToNull(request.getNickname()));
+        user.setRealName(trimToNull(request.getRealName()));
+        user.setEmail(trimToNull(request.getEmail()));
+        user.setMobile(trimToNull(request.getMobile()));
+        user.setStatus(request.getStatus());
+        sysUserRepository.save(user);
+        replaceUserRoles(user.getId(), roleIds);
+        evictUserPermissionCache(user.getId());
+        return true;
+    }
+
+    @Override
+    public boolean deleteUser(Long userId) {
+        SysUser user = sysUserRepository.findByIdAndDelFlag(userId, "0")
+                .orElseThrow(() -> new BusinessException("user does not exist"));
+        user.setDelFlag("1");
+        sysUserRepository.save(user);
+        sysUserRoleRepository.deleteByIdUserId(userId);
+        evictUserPermissionCache(userId);
+        return true;
     }
 
     @Override
@@ -190,6 +297,45 @@ public class SystemRoleServiceImpl implements SystemRoleService {
         };
     }
 
+    private Specification<SysUser> buildUserSpecification(UserQueryRequest request) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("delFlag"), "0"));
+            if (StringUtils.hasText(request.getUsername())) {
+                predicates.add(cb.like(root.get("username"), "%" + request.getUsername().trim() + "%"));
+            }
+            if (StringUtils.hasText(request.getMobile())) {
+                predicates.add(cb.like(root.get("mobile"), "%" + request.getMobile().trim() + "%"));
+            }
+            if (request.getStatus() != null) {
+                predicates.add(cb.equal(root.get("status"), request.getStatus()));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private UserResponse toUserResponse(SysUser user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setNickname(user.getNickname());
+        response.setRealName(user.getRealName());
+        response.setEmail(user.getEmail());
+        response.setMobile(user.getMobile());
+        response.setDingUserId(user.getDingUserId());
+        response.setStatus(user.getStatus());
+        response.setCreateTime(user.getCreateTime());
+        response.setUpdateTime(user.getUpdateTime());
+        List<Long> roleIds = sysUserRoleRepository.findRoleIdsByUserId(user.getId());
+        response.setRoleIds(roleIds);
+        if (roleIds != null && !roleIds.isEmpty()) {
+            response.setRoleNames(sysRoleRepository.findAllById(roleIds).stream()
+                    .map(SysRole::getRoleName)
+                    .toList());
+        }
+        return response;
+    }
+
     private void applyRolePayload(SysRole role, RoleSaveRequest request) {
         role.setRoleName(request.getRoleName().trim());
         role.setRoleKey(request.getRoleKey().trim());
@@ -224,6 +370,36 @@ public class SystemRoleServiceImpl implements SystemRoleService {
         if (count != menuIds.size()) {
             throw new BusinessException("提交的菜单数据包含无效ID");
         }
+    }
+
+    private void validateRoleIds(Collection<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            throw new BusinessException("roleIds must not be empty");
+        }
+        long count = sysRoleRepository.countByIdIn(roleIds);
+        if (count != roleIds.size()) {
+            throw new BusinessException("submitted roleIds contain invalid role");
+        }
+    }
+
+    private String trimToNull(String value) {
+        return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    private void replaceUserRoles(Long userId, Set<Long> roleIds) {
+        sysUserRoleRepository.deleteByIdUserId(userId);
+        List<SysUserRole> relations = roleIds.stream()
+                .map(roleId -> {
+                    SysUserRole relation = new SysUserRole();
+                    relation.setId(new SysUserRoleId(userId, roleId));
+                    return relation;
+                })
+                .toList();
+        sysUserRoleRepository.saveAll(relations);
+    }
+
+    private void evictUserPermissionCache(Long userId) {
+        caffeineCacheService.remove(CacheType.USER_PERMISSIONS, "perms:" + userId);
     }
 
     private void evictRolePermissionCache(Long roleId) {

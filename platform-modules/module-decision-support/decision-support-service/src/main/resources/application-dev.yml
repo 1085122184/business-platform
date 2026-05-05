@@ -82,10 +82,12 @@ app:
   database:
     schema: DY
   ding-talk:
+    corpId: dinge6b55e58e71956b74ac5d6980864d335
     userId: 02034558552823591704
-    agentId: 3922877842
-    appKey: dingach805kwwt9h3oyg
-    appSecret: TUL4_gPHWeM4rZWxRq6E4Llx1fe5vndqez9GzffkCpqwb3oJtcWCeRGyhu6FPSDl
-
-
+    agentId: 4527160482
+    appKey: ding4rzzolubpeq5muau
+    appSecret: N2S-ppCVALSDmOErU_m2cuzCT3JRmnFTIL50HM9RtMwzFYwXFjnFAq68LzRh-SqQ
+    appId: a7a45ec1-1879-448f-b223-3ad2dd28600a
+    scanAppSecret: N2S-ppCVALSDmOErU_m2cuzCT3JRmnFTIL50HM9RtMwzFYwXFjnFAq68LzRh-SqQ
+    oauthRedirectUri: http://172.16.13.43:5173/login
 

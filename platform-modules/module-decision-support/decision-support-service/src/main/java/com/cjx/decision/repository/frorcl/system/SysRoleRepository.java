@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -18,6 +19,8 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long>, JpaSpec
     boolean existsByRoleKey(String roleKey);
 
     boolean existsByRoleKeyAndIdNot(String roleKey, Long id);
+
+    long countByIdIn(Collection<Long> ids);
 
     @Query(value = """
             SELECT R.ROLE_KEY
