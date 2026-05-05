@@ -118,6 +118,8 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
 
             BigDecimal domesticVolume = BigDecimal.ZERO;
             BigDecimal intlVolume = BigDecimal.ZERO;
+            BigDecimal domesticAmount = BigDecimal.ZERO;
+            BigDecimal intlAmount = BigDecimal.ZERO;
             BigDecimal totalAmount = BigDecimal.ZERO;
 
             // 汇总当天的所有记录
@@ -127,10 +129,12 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
                 BigDecimal recordAmount = record.getTotalAmount() != null ? record.getTotalAmount() : BigDecimal.ZERO;
                 if (isDomestic) {
                     domesticVolume = domesticVolume.add(recordVolume);
+                    domesticAmount = domesticAmount.add(recordAmount);
                     allDomesticVolume = allDomesticVolume.add(recordVolume);
                     allDomesticAmount = allDomesticAmount.add(recordAmount);
                 } else {
                     intlVolume = intlVolume.add(recordVolume);
+                    intlAmount = intlAmount.add(recordVolume);
                     allIntVolume = allIntVolume.add(recordVolume);
                     allIntAmount = allIntAmount.add(recordAmount);
                 }
@@ -146,6 +150,8 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
             trendObj.setDate(displayDate);
             trendObj.setDomesticVolume(domesticVolume);
             trendObj.setIntlVolume(intlVolume);
+            trendObj.setDomesticAmount(domesticAmount);
+            trendObj.setIntlAmount(intlAmount);
             trendObj.setAmount(totalAmount);
             resultList.add(trendObj);
         }
