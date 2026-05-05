@@ -16,5 +16,7 @@ public class ProductDeepTrend {
     private BigDecimal domesticVolume;
     private BigDecimal intlVolume;
     private BigDecimal amount;
+    private BigDecimal domesticAmount;
+    private BigDecimal intlAmount;
 
 }
