@@ -53,7 +53,7 @@ public interface DashboardService {
      * @param code 产品代码
      * @return 客户交易列表
      */
-    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type);
+    List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type, LocalDate date);
     
     // ===== 销售分析 =====
 
@@ -78,10 +78,10 @@ public interface DashboardService {
 
     /**
      * 查询月度销售趋势
-     * @param date 日期(未使用,默认查询到昨天)
+     * @param date 日期
      * @return 销售趋势列表
      */
-    List<SalesTrendProductDTO> getSalesTrends(String date);
+    List<SalesTrendProductDTO> getSalesTrends(LocalDate date);
 
     /**
      * 查询年度销售趋势详情
@@ -90,7 +90,7 @@ public interface DashboardService {
      * @param date 日期
      * @return 销售趋势点列表
      */
-    List<SalesTrendPointDTO> getSalesTrendsList(String productCode, String region, String date);
+    List<SalesTrendPointDTO> getSalesTrendsList(String productCode, String region, LocalDate date);
 
     /**
      * 查询产品深度详情

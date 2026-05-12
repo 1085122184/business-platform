@@ -75,43 +75,48 @@ public class MetricsServiceImpl implements MetricsService {
         
         DashboardMetricsDTO dto = new DashboardMetricsDTO();
         RawSalesMetric volume = new RawSalesMetric();
+        BigDecimal totalSales = getValue(salesSummary, SalesSummary::getTotalSales);
+        BigDecimal totalAmount = getValue(salesSummary, SalesSummary::getTotalAmount);
+        BigDecimal monthSales = getValue(todaySum, SalesSummary::getTotalSales);
+        BigDecimal monthAmount = getValue(todaySum, SalesSummary::getTotalAmount);
+        BigDecimal countBudgetValue = getValue(countBudget, SalesSummary::getTotalCountBudget);
+        BigDecimal amountBudgetValue = getValue(amountBudget, SalesSummary::getTotalAmountBudget);
+        BigDecimal collectionAmount = getValue(collectionMonth, SalesSummary::getCollection);
+
         volume.setMetricName("总销量");
-        volume.setDisplayValue(salesSummary.getTotalSales()+" 吨");
-        BigDecimal countBudgetValue = countBudget.getTotalCountBudget();
+        volume.setDisplayValue(totalSales + " 吨");
         if (countBudgetValue != null && countBudgetValue.compareTo(BigDecimal.ZERO) != 0) {
-            volume.setBudgetRate(todaySum.getTotalSales().divide(countBudgetValue, 4, RoundingMode.HALF_UP));
+            volume.setBudgetRate(monthSales.divide(countBudgetValue, 4, RoundingMode.HALF_UP));
         } else {
             volume.setBudgetRate(BigDecimal.ZERO);
         }
-        volume.setGapValue(todaySum.getTotalSales());//差额
-        volume.setMonthGoal(countBudget.getTotalCountBudget());//本月目标。月预算
+        volume.setGapValue(monthSales);//差额
+        volume.setMonthGoal(countBudgetValue);//本月目标。月预算
         volume.setType("volume");
         dto.setSalesVolume(volume);
 
         RawSalesMetric amount = new RawSalesMetric();
         amount.setMetricName("总销售额");
-        amount.setDisplayValue(salesSummary.getTotalAmount()+" 万元");
-        BigDecimal amountBudgetValue = amountBudget.getTotalAmountBudget();
+        amount.setDisplayValue(totalAmount + " 万元");
         if (amountBudgetValue != null && amountBudgetValue.compareTo(BigDecimal.ZERO) != 0) {
-            amount.setBudgetRate(todaySum.getTotalAmount().divide(amountBudgetValue, 4, RoundingMode.HALF_UP));
+            amount.setBudgetRate(monthAmount.divide(amountBudgetValue, 4, RoundingMode.HALF_UP));
         } else {
             amount.setBudgetRate(BigDecimal.ZERO);
         }
-        amount.setGapValue(todaySum.getTotalAmount());
-        amount.setMonthGoal(amountBudget.getTotalAmountBudget());
+        amount.setGapValue(monthAmount);
+        amount.setMonthGoal(amountBudgetValue);
         amount.setType("amount");
         dto.setSalesAmount(amount);
         RawCollection collection = new RawCollection();
         if(Objects.nonNull(collectionMonth)){
-            collection.setCollectionAmount(collectionMonth.getCollection()+" 万元");
-            BigDecimal totalAmount = todaySum.getTotalAmount();
-            if (totalAmount != null && totalAmount.compareTo(BigDecimal.ZERO) != 0) {
-                collection.setCollectionRate(collectionMonth.getCollection().divide(totalAmount, 4, RoundingMode.HALF_UP));
+            collection.setCollectionAmount(collectionAmount + " 万元");
+            if (monthAmount.compareTo(BigDecimal.ZERO) != 0) {
+                collection.setCollectionRate(collectionAmount.divide(monthAmount, 4, RoundingMode.HALF_UP));
             } else {
                 collection.setCollectionRate(BigDecimal.ZERO);
             }
-            collection.setGapValue(todaySum.getTotalAmount().subtract(collectionMonth.getCollection()));
-            collection.setMonthGoal(todaySum.getTotalAmount());
+            collection.setGapValue(monthAmount.subtract(collectionAmount));
+            collection.setMonthGoal(monthAmount);
         }
         dto.setCollection(collection);
         return dto;
@@ -122,7 +127,7 @@ public class MetricsServiceImpl implements MetricsService {
         DashboardOrdersDTO dto = new DashboardOrdersDTO();
 
         String thisMonth = targetDate.minusDays(1).withDayOfMonth(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.lastDayOfMonth()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.firstDayOfNextMonth()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String dateStr = targetDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         
         SalesSummary monthOrder = caffeineCacheService.getOrLoad(
@@ -133,8 +138,10 @@ public class MetricsServiceImpl implements MetricsService {
         
         RawOrder monthOrders = new RawOrder();
         monthOrders.setOrderTitle("本月未关订单数");
-        monthOrders.setOrderCount(monthOrder.getOpenOrder()+"");
-        monthOrders.setOrderRate(monthOrder.getOpenOrder().divide(monthOrder.getTotalOrder(), 2, RoundingMode.HALF_UP));
+        BigDecimal monthOpenOrder = getValue(monthOrder, SalesSummary::getOpenOrder);
+        BigDecimal monthTotalOrder = getValue(monthOrder, SalesSummary::getTotalOrder);
+        monthOrders.setOrderCount(monthOpenOrder + "");
+        monthOrders.setOrderRate(calculateRate(monthOpenOrder, monthTotalOrder));
         monthOrders.setBarColor("#f59e0b");
         dto.setMonthOrders(monthOrders);
 
@@ -149,11 +156,29 @@ public class MetricsServiceImpl implements MetricsService {
         
         RawOrder yearOrders = new RawOrder();
         yearOrders.setOrderTitle("本年未关订单数");
-        yearOrders.setOrderCount(yearOrder.getOpenOrder()+"");
-        yearOrders.setOrderRate(yearOrder.getOpenOrder().divide(yearOrder.getTotalOrder(), 2, RoundingMode.HALF_UP));
+        BigDecimal yearOpenOrder = getValue(yearOrder, SalesSummary::getOpenOrder);
+        BigDecimal yearTotalOrder = getValue(yearOrder, SalesSummary::getTotalOrder);
+        yearOrders.setOrderCount(yearOpenOrder + "");
+        yearOrders.setOrderRate(calculateRate(yearOpenOrder, yearTotalOrder));
         yearOrders.setBarColor("#f59e0b");
         dto.setYearOrders(yearOrders);
 
         return dto;
+    }
+
+    private BigDecimal getValue(SalesSummary summary, java.util.function.Function<SalesSummary, BigDecimal> getter) {
+        if (summary == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal value = getter.apply(summary);
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal calculateRate(BigDecimal numerator, BigDecimal denominator) {
+        if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal safeNumerator = numerator == null ? BigDecimal.ZERO : numerator;
+        return safeNumerator.divide(denominator, 2, RoundingMode.HALF_UP);
     }
 }

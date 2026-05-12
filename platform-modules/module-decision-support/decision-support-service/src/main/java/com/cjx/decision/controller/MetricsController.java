@@ -37,23 +37,23 @@ public class MetricsController {
     
     /**
      * 查询核心指标(销量/销售额/回款)
-     * @param date 日期,不传默认查询昨天
+     * @param date 日期
      * @return 核心指标
      */
     @GetMapping
     public Result<DashboardMetricsDTO> getMetrics(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getMetrics(date));
     }
     
     /**
      * 查询订单数据(本月/本年未关单)
-     * @param date 日期,不传默认查询昨天
+     * @param date 日期
      * @return 订单数据
      */
     @GetMapping("/orders")
     public Result<DashboardOrdersDTO> getOrders(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getOrders(date));
     }
 }

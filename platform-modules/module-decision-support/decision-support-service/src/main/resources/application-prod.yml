@@ -13,39 +13,32 @@ spring:
     name: diff-checker
   data:
     redis:
-      host: 192.168.200.18
-      port: 6379
-      password: lilishop
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       lettuce:
         pool:
-          # 连接池最大连接数（使用负值表示没有限制） 默认 8
           max-active: 200
-          # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
           max-wait: 20
-          # 连接池中的最大空闲连接 默认 8
           max-idle: 10
-          # 连接池中的最小空闲连接 默认 8
           min-idle: 8
   datasource:
     frorcl:
-      jdbc-url: jdbc:oracle:thin:@192.168.200.159:1521:frorcl
-      driver-class-name: oracle.jdbc.OracleDriver
-      username: dy
-      password: dy
-      # 主数据源的HikariCP配置
+      jdbc-url: ${FRORCL_JDBC_URL}
+      driver-class-name: ${FRORCL_DRIVER_CLASS_NAME:oracle.jdbc.OracleDriver}
+      username: ${FRORCL_USERNAME}
+      password: ${FRORCL_PASSWORD}
       hikari:
         pool-name: frorclPool
-        minimum-idle: 3                    # 主库连接数较大
-        maximum-pool-size: 10               # 主库最大连接数
+        minimum-idle: 3
+        maximum-pool-size: 10
         auto-commit: true
         idle-timeout: 30000
         max-lifetime: 1800000
         connection-timeout: 30000
         connection-test-query: SELECT 1 FROM DUAL
 
-
   jpa:
-    # ✅ 推荐：禁用 Open Session In View
     open-in-view: false
     hibernate:
       ddl-auto: none
@@ -59,5 +52,15 @@ spring:
         order_inserts: true
         order_updates: true
 
-
-
+app:
+  database:
+    schema: ${FRORCL_SCHEMA}
+  ding-talk:
+    corpId: ${DINGTALK_CORP_ID:}
+    userId: ${DINGTALK_USER_ID:}
+    agentId: ${DINGTALK_AGENT_ID:}
+    appKey: ${DINGTALK_APP_KEY:}
+    appSecret: ${DINGTALK_APP_SECRET:}
+    appId: ${DINGTALK_APP_ID:}
+    scanAppSecret: ${DINGTALK_SCAN_APP_SECRET:}
+    oauthRedirectUri: ${DINGTALK_OAUTH_REDIRECT_URI:http://192.168.200.40/login}

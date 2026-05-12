@@ -77,7 +77,7 @@ public class SalesServiceImpl implements SalesService {
     public SalesSummary findMonthOrder(LocalDate targetDate) {
         String thisMonth = targetDate.minusDays(1).withDayOfMonth(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.lastDayOfMonth())
+        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.firstDayOfNextMonth())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "monthOrder:" + targetDate;
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findMonthOrder(thisMonth,lastMonth,targetDate),SalesSummary.class);
@@ -192,7 +192,7 @@ public class SalesServiceImpl implements SalesService {
     @AutoWarmUp
     @Override
     public List<SalesSummary> findTrendsAll(LocalDate endLocalDate) {
-        String startDate = LocalDate.now().minusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String startDate = endLocalDate.minusDays(29).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "trendsAll:" + endDate;
         return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsAll(startDate,endDate));
@@ -200,8 +200,7 @@ public class SalesServiceImpl implements SalesService {
 
     @Override
     public List<SalesSummary> findTrendsYear(LocalDate endLocalDate,String productCode,String region) {
-        LocalDate now = LocalDate.now();
-        LocalDate firstDayOfYear = LocalDate.of(now.getYear(), 1, 1);
+        LocalDate firstDayOfYear = LocalDate.of(endLocalDate.getYear(), 1, 1);
         String startDate = firstDayOfYear.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "trendsYear:" + endDate + ":" + productCode+"_"+region;

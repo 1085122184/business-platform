@@ -45,7 +45,7 @@ public class TrendAnalysisController {
      */
     @GetMapping("/monthly")
     public Result<List<SalesTrendProductDTO>> getMonthlyTrends(
-            @NotBlank(message = "日期不能为空") @RequestParam("date") String date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getSalesTrends(date));
     }
     
@@ -60,7 +60,7 @@ public class TrendAnalysisController {
     public Result<List<SalesTrendPointDTO>> getYearlyTrends(
             @NotBlank(message = "产品代码不能为空") @RequestParam("productCode") String productCode,
             @NotBlank(message = "区域不能为空") @RequestParam("region") String region,
-            @NotBlank(message = "日期不能为空") @RequestParam("date") String date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getSalesTrendsList(productCode, region, date));
     }
     
