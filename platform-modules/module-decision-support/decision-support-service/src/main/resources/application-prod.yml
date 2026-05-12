@@ -22,6 +22,17 @@ spring:
           max-wait: 20
           max-idle: 10
           min-idle: 8
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:111}
+      base-url: ${OPENAI_BASE_URL:http://192.168.200.53:8000}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:Qwen/Qwen3-14B-AWQ}
+          temperature: ${OPENAI_CHAT_TEMPERATURE:0.7}
+      embedding:
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
   datasource:
     frorcl:
       jdbc-url: ${FRORCL_JDBC_URL}
