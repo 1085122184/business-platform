@@ -48,6 +48,6 @@ public class PriceAnalysisServiceImpl implements PriceAnalysisService {
         if ("7days".equals(type)){
             beginDate = date.minusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         }
-        return priceAnalysisRepository.findCustomerTransaction(regionCode, code, beginDate, endDate);
+        return priceAnalysisRepository.findCustomerTransaction(regionCode, code,beginDate, endDate);
     }
 }
