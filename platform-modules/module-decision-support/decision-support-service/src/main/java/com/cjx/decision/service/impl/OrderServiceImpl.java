@@ -25,7 +25,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderDetail> getCompanyDetails(LocalDate targetDate, String companyName) {
         String thisMonth = targetDate.minusDays(1).withDayOfMonth(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.lastDayOfMonth())
+        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.firstDayOfNextMonth())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         return orderRepository.findOrderDetail(thisMonth,lastMonth,companyName);
     }
@@ -34,7 +34,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderDetailDTO> getOrderWithDetails(LocalDate targetDate, String companyName) {
         String thisMonth = targetDate.minusDays(1).withDayOfMonth(1)
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.lastDayOfMonth())
+        String lastMonth = targetDate.minusDays(1).with(TemporalAdjusters.firstDayOfNextMonth())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         List<Map<String, Object>> mapList = orderRepository.findOrderWithDetails(thisMonth,lastMonth,companyName);
         return convertToDTO(mapList);

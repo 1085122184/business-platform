@@ -21,7 +21,7 @@ public interface TrendAnalysisService {
      * @param date 日期(未使用,默认查询到昨天)
      * @return 销售趋势列表
      */
-    List<SalesTrendProductDTO> getMonthlyTrends(String date);
+    List<SalesTrendProductDTO> getMonthlyTrends(LocalDate date);
     
     /**
      * 查询年度销售趋势详情
@@ -30,7 +30,7 @@ public interface TrendAnalysisService {
      * @param date 日期
      * @return 销售趋势点列表
      */
-    List<SalesTrendPointDTO> getYearlyTrends(String productCode, String region, String date);
+    List<SalesTrendPointDTO> getYearlyTrends(String productCode, String region, LocalDate date);
     
     /**
      * 查询产品深度详情

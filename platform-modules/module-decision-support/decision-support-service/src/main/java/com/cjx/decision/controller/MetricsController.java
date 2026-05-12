@@ -39,7 +39,7 @@ public class MetricsController {
      */
     @GetMapping
     public Result<DashboardMetricsDTO> getMetrics(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getMetrics(date));
     }
     
@@ -50,7 +50,7 @@ public class MetricsController {
      */
     @GetMapping("/orders")
     public Result<DashboardOrdersDTO> getOrders(
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+            @NotNull(message = "日期不能为空") @RequestParam("date") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         return Result.success(dashboardService.getOrders(date));
     }
 }

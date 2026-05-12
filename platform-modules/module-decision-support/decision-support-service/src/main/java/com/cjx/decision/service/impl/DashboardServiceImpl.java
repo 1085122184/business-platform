@@ -50,8 +50,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
     
     @Override
-    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type) {
-        return priceAnalysisService.getCustomerTransactions(region, code,type);
+    public List<CustomerTransactionProjection> findCustomerTransaction(String region, String code, String type, LocalDate date) {
+        return priceAnalysisService.getCustomerTransactions(region, code, type, date);
     }
     
     @Override
@@ -65,12 +65,12 @@ public class DashboardServiceImpl implements DashboardService {
     }
     
     @Override
-    public List<SalesTrendProductDTO> getSalesTrends(String date) {
+    public List<SalesTrendProductDTO> getSalesTrends(LocalDate date) {
         return trendAnalysisService.getMonthlyTrends(date);
     }
     
     @Override
-    public List<SalesTrendPointDTO> getSalesTrendsList(String productCode, String region, String date) {
+    public List<SalesTrendPointDTO> getSalesTrendsList(String productCode, String region, LocalDate date) {
         return trendAnalysisService.getYearlyTrends(productCode, region, date);
     }
     

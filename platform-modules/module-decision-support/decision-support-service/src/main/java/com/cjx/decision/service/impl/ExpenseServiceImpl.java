@@ -89,7 +89,6 @@ public class ExpenseServiceImpl implements ExpenseService {
 //        result.add(new ExpenseStructureDTO.StructureItem("管理费用", overview.getManagementExpense().getAmount(), overview.getManagementExpense().getPercent()));
 //        result.add(new ExpenseStructureDTO.StructureItem("财务费用", overview.getFinanceExpense().getAmount(), overview.getFinanceExpense().getPercent()));
 //        structure.setList(list);
-        System.out.println(123);
         return result;
     }
 
@@ -156,10 +155,13 @@ public class ExpenseServiceImpl implements ExpenseService {
             item.setName(m.get("COMPANY_NAME") != null ? m.get("COMPANY_NAME").toString() : "未知公司");
 
             // 数据转万元
-            double totalExp = getDoubleValue(m, "SALES_EXP")+getDoubleValue(m, "SALES_EXP")+getDoubleValue(m, "SALES_EXP");
-            item.setSales(BigDecimal.valueOf(getDoubleValue(m, "SALES_EXP")));
-            item.setManagement(BigDecimal.valueOf(getDoubleValue(m, "MANAGE_EXP")));
-            item.setFinance(BigDecimal.valueOf(getDoubleValue(m, "FINANCE_EXP")));
+            double salesExp = getDoubleValue(m, "SALES_EXP");
+            double manageExp = getDoubleValue(m, "MANAGE_EXP");
+            double financeExp = getDoubleValue(m, "FINANCE_EXP");
+            double totalExp = salesExp + manageExp + financeExp;
+            item.setSales(BigDecimal.valueOf(salesExp));
+            item.setManagement(BigDecimal.valueOf(manageExp));
+            item.setFinance(BigDecimal.valueOf(financeExp));
             item.setTotal(BigDecimal.valueOf(totalExp));
 
             // 同比

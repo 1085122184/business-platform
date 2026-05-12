@@ -39,18 +39,18 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
     private final CaffeineCacheService caffeineCacheService;
 
     @Override
-    public List<SalesTrendProductDTO> getMonthlyTrends(String date) {
+    public List<SalesTrendProductDTO> getMonthlyTrends(LocalDate date) {
         List<SalesTrendProductDTO> resultList = new ArrayList<>();
-        LocalDate endLocalDate = LocalDate.now().minusDays(1);
+        LocalDate endLocalDate = date.minusDays(1);
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         buildMonthTrends(resultList, endLocalDate, endDate);
         return resultList;
     }
 
     @Override
-    public List<SalesTrendPointDTO> getYearlyTrends(String productCode, String region, String date) {
+    public List<SalesTrendPointDTO> getYearlyTrends(String productCode, String region, LocalDate date) {
         List<SalesTrendPointDTO> resultList = new ArrayList<>();
-        LocalDate endLocalDate = LocalDate.now().minusDays(1);
+        LocalDate endLocalDate = date.minusDays(1);
         String endDate = endLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         buildYearTrends(resultList, endLocalDate, endDate, productCode, region);
         return resultList;
@@ -134,7 +134,7 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
                     allDomesticAmount = allDomesticAmount.add(recordAmount);
                 } else {
                     intlVolume = intlVolume.add(recordVolume);
-                    intlAmount = intlAmount.add(recordVolume);
+                    intlAmount = intlAmount.add(recordAmount);
                     allIntVolume = allIntVolume.add(recordVolume);
                     allIntAmount = allIntAmount.add(recordAmount);
                 }
@@ -184,7 +184,7 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
     }
 
     private void buildMonthTrends(List<SalesTrendProductDTO> resultList, LocalDate endLocalDate, String endDate) {
-        String startDate = LocalDate.now().minusDays(30).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String startDate = endLocalDate.minusDays(29).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         List<SalesSummary> trendsAll = caffeineCacheService.getOrLoadList(
             CacheType.TODAY_DATA, "trendsAll:" + endDate,
             k -> trendAnalysisRepository.findTrendsAll(startDate, endDate)
@@ -267,8 +267,7 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
     }
 
     private void buildYearTrends(List<SalesTrendPointDTO> resultList, LocalDate endLocalDate, String endDate, String productCode, String region) {
-        LocalDate now = LocalDate.now();
-        LocalDate firstDayOfYear = LocalDate.of(now.getYear(), 1, 1);
+        LocalDate firstDayOfYear = LocalDate.of(endLocalDate.getYear(), 1, 1);
         String startDate = firstDayOfYear.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String key = "trendsYear:" + endDate + ":" + productCode + "_" + region;
         

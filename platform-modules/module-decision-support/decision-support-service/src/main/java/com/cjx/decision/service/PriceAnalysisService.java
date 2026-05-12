@@ -28,5 +28,5 @@ public interface PriceAnalysisService {
      * @param code 产品代码
      * @return 客户交易列表
      */
-    List<CustomerTransactionProjection> getCustomerTransactions(String region, String code,String type);
+    List<CustomerTransactionProjection> getCustomerTransactions(String region, String code, String type, LocalDate date);
 }

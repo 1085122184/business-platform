@@ -24,7 +24,7 @@ public interface AllDetailsRepository extends Repository<VLvlengRixiaoshou, Long
           WHEN '3001' THEN '绿冷' WHEN '1400' THEN '有机硅'
           END AS companyName,
   CASE 渠道 WHEN '10' THEN '国内' WHEN '20' THEN '国外' END AS region,
-  物料描述 AS productName,物料组描述 AS groupName,销量 AS sales,金额 AS amount,ROUND(金额*10000/销量,2) AS price
+  物料描述 AS productName,物料组描述 AS groupName,销量 AS sales,金额 AS amount,ROUND(金额*10000/NULLIF(销量,0),2) AS price
   FROM v_sales_detail_all WHERE 过账日期 = :targetDate AND  (:companyCode IS NULL OR :companyCode = '' OR 公司编码 = :companyCode)
   """, nativeQuery = true)
     List<AllDetails> findSalesDetail(@Param("targetDate") String targetDate,@Param("companyCode") String companyCode);
