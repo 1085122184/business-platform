@@ -8,6 +8,8 @@ variables:
 build_backend:
   stage: build
   image: maven:3.9.9-eclipse-temurin-17
+  tags:
+    - prod-deploy
   script:
     - mvn -pl platform-modules/module-decision-support/decision-support-service -am -DskipTests package
     - mkdir -p release
