@@ -3,12 +3,14 @@ package com.cjx.decision.controller;
 import com.cjx.common.ai.model.AiChatRequest;
 import com.cjx.common.ai.service.AiChatService;
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.ai.AiDiagnosisDTO;
 import com.cjx.decision.service.DashboardAiService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -33,6 +35,7 @@ public class AiController {
     private final DashboardAiService dashboardAiService;
 
     @PostMapping(value = "/insight/price-deviation", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).AI_INSIGHT)")
     public Flux<String> getPriceDeviationInsight(@RequestBody List<Map<String, Object>> chartData) {
 
         String prompt = "你是一个资深大客户销售总监。请根据以下我系统里的【价格偏差数据 JSON】，" +
@@ -45,6 +48,7 @@ public class AiController {
     }
 
     @GetMapping(value = "/company-diagnosis")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).AI_DIAGNOSIS)")
     public Result<AiDiagnosisDTO> getCompanyDiagnosis(
             @RequestParam String companyName,
             @RequestParam BigDecimal value,

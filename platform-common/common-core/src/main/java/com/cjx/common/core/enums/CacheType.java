@@ -4,13 +4,13 @@ import lombok.Getter;
 
 /**
  * 缓存类型枚举
- * <p>按业务场景预定义缓存策略，TTL 单位：秒</p>
  *
  * @author cuijixu
  * @since 1.0.0
  */
 @Getter
 public enum CacheType {
+
     /**
      * 默认缓存：最大 500 条，TTL 5 分钟
      */
@@ -39,7 +39,12 @@ public enum CacheType {
     /**
      * Token 缓存：最大 5000 条，TTL 2 小时
      */
-    TOKEN("token", 5000, 7200);
+    TOKEN("token", 5000, 7200),
+
+    /**
+     * Token 缓存：最大 5000 条，TTL 2 小时
+     */
+    USER_PERMISSIONS("user_perms", 10000, 3600);
 
     /** 缓存名称（对应 @Cacheable 的 cacheNames） */
     private final String cacheName;

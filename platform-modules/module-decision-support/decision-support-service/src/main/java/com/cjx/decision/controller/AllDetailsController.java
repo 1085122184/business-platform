@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
 import com.cjx.decision.projection.frorcl.AllDetails;
 import com.cjx.decision.service.AllDetailsService;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +28,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "获取明细", description = "获取各项明细")
 @CrossOrigin(origins = "*")
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).ALL_DETAILS_VIEW)")
 public class AllDetailsController {
     private final DashboardService dashboardService;
 

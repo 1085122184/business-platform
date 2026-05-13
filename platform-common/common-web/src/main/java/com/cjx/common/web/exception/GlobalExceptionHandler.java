@@ -6,6 +6,8 @@ import com.cjx.common.core.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -81,6 +83,26 @@ public class GlobalExceptionHandler {
     public Result<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         log.warn("参数类型不匹配: {} 需要类型 {}", e.getName(), e.getRequiredType());
         return Result.fail(ResultCode.BAD_REQUEST.getCode(), "参数类型错误");
+    }
+
+    /**
+     * 权限不足异常
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Result<?> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+        log.warn("权限不足: URI={}, message={}", request.getRequestURI(), e.getMessage());
+        return Result.fail(ResultCode.FORBIDDEN.getCode(), ResultCode.FORBIDDEN.getMessage());
+    }
+
+    /**
+     * 认证失败异常
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<?> handleAuthenticationException(AuthenticationException e, HttpServletRequest request) {
+        log.warn("认证失败: URI={}, message={}", request.getRequestURI(), e.getMessage());
+        return Result.fail(ResultCode.UNAUTHORIZED.getCode(), ResultCode.UNAUTHORIZED.getMessage());
     }
 
     /**

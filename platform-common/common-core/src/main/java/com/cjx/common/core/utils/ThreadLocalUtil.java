@@ -12,6 +12,8 @@ import java.util.Map;
 public class ThreadLocalUtil {
     private static final ThreadLocal<Map<String, Object>> THREAD_LOCAL = new ThreadLocal<>();
 
+    private static final String PERMISSIONS_KEY = "permissions";
+
     /**
      * 设置值
      */
@@ -63,6 +65,21 @@ public class ThreadLocalUtil {
             THREAD_LOCAL.set(map);
         }
         return map;
+    }
+
+    /**
+     * 设置当前用户权限列表
+     */
+    public static void setPermissions(java.util.Set<String> permissions) {
+        set(PERMISSIONS_KEY, permissions);
+    }
+
+    /**
+     * 获取当前用户权限列表
+     */
+    @SuppressWarnings("unchecked")
+    public static java.util.Set<String> getPermissions() {
+        return get(PERMISSIONS_KEY, java.util.Set.class);
     }
 
     // ========== 常用方法封装 ==========

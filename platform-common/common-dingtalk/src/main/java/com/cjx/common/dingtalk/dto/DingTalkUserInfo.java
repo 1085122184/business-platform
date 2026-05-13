@@ -1,5 +1,6 @@
 package com.cjx.common.dingtalk.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -12,11 +13,18 @@ import java.util.List;
  * @author system
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DingTalkUserInfo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @JsonProperty("userid")
     private String userId;
+
+    @JsonProperty("unionid")
+    private String unionId;
+
+    @JsonProperty("device_id")
+    private String deviceId;
 
     @JsonProperty("name")
     private String name;
@@ -44,4 +52,10 @@ public class DingTalkUserInfo implements Serializable {
 
     @JsonProperty("senior")
     private Boolean senior;
+
+    @JsonProperty("sys")
+    private Boolean sys;
+
+    @JsonProperty("sys_level")
+    private Integer sysLevel;
 }

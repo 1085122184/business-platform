@@ -1,0 +1,98 @@
+建议你走“钉钉 H5 微应用免登”这条线，不要先做扫码登录。原因很简单：你现在仓库里已经有现成基础，前端有标准 JWT 登录页 [LoginView.vue](/E:/workspace/dy-app/web/sales-dashboard/src/views/auth/LoginView.vue:1)、认证请求 [auth-api.ts](/E:/workspace/dy-app/web/sales-dashboard/src/api/auth-api.ts:1)、登录态存储 [useGlobalStore.ts](/E:/workspace/dy-app/web/sales-dashboard/src/store/useGlobalStore.ts:1)，后端也已经有 `authCode -> 钉钉用户信息` 的能力 [DingTalkUtil.java](/E:/workspace/dy-app/business-platform/platform-common/common-dingtalk/src/main/java/com/cjx/common/dingtalk/utils/DingTalkUtil.java:385)。按钉钉官方教程分类，截至 `2026-04-28`，你要区分 “H5 微应用免登” 和 “钉钉内免登第三方网站/扫码登录第三方网站”；按你当前项目形态，前者最贴合。[钉钉教程总览](https://open.dingtalk.com/tutorial/) 、[开发一个H5微应用](https://open.dingtalk.com/document/tutorial/develop-h5-micro-applications) 、[钉钉内免登第三方网站](https://open.dingtalk.com/document/tutorial/dingtalk-logon-free-third-party-websites) 、[扫码登录第三方网站](https://open.dingtalk.com/document/tutorial/scan-qr-code-to-log-on-to-third-party-websites)
+
+**推荐落地方式**
+登录链路改成这一条：
+1. 前端在钉钉容器内拿一次性 `authCode`。
+2. 前端把 `authCode` 发给后端新接口 `POST /api/v1/auth/dingtalk/login`。
+3. 后端用钉钉接口把 `authCode` 换成钉钉用户，再映射到本地 `SYS_USER`。
+4. 后端仍然返回你现在的 `LoginResponse` 结构，前端继续复用 `store.setAuth()`。
+5. 非钉钉环境下，仍保留账号密码登录作为兜底。
+
+**后端怎么改**
+先补配置模型。你现在的 [DingTalkConfig.java](/E:/workspace/dy-app/business-platform/platform-common/common-dingtalk/src/main/java/com/cjx/common/dingtalk/config/DingTalkConfig.java:15) 只有 `appKey/appSecret/agentId`，但前端免登通常还需要 `corpId`；而且这个类里 `appKey` 的注释语义也是混的。建议显式拆成：
+- `corpId`
+- `appKey`
+- `appSecret`
+- `agentId`
+
+然后在 `decision-support` 里新增一条钉钉登录接口，而不是改掉现有密码登录：
+- 在 [SystemAuthController.java](/E:/workspace/dy-app/business-platform/platform-modules/module-decision-support/decision-support-service/src/main/java/com/cjx/decision/controller/SystemAuthController.java:26) 新增 `POST /api/v1/auth/dingtalk/login`
+- 新增 DTO，例如 `DingTalkLoginRequest { authCode: string }`
+- 在 `SystemAuthService` / `SystemAuthServiceImpl` 增加 `loginByDingTalk(authCode, request)`
+
+`loginByDingTalk` 的逻辑建议这样写：
+- 调用你现成的 `dingTalkUtil.getUserInfoByAuthCode(authCode)` 拿 `dingUserId`
+- 再调 `dingTalkUtil.getUserDetail(dingUserId)` 拿 `mobile/name/email`
+- 用本地用户表做映射
+- 复用现有 [SystemAuthServiceImpl.java](/E:/workspace/dy-app/business-platform/platform-modules/module-decision-support/decision-support-service/src/main/java/com/cjx/decision/service/impl/SystemAuthServiceImpl.java:55) 的“查角色、查权限、签 JWT、写登录日志”逻辑
+- 返回的还是 [LoginResponse.java](/E:/workspace/dy-app/business-platform/platform-modules/module-decision-support/decision-support-service/src/main/java/com/cjx/decision/dto/auth/LoginResponse.java:11) 这套结构，前端不用重做鉴权体系
+
+本地用户映射别只靠手机号硬匹配。你现在 `SYS_USER` 只有 `MOBILE`，见 [SysUser.java](/E:/workspace/dy-app/business-platform/platform-modules/module-decision-support/decision-support-service/src/main/java/com/cjx/decision/entity/frorcl/system/SysUser.java:46)。最稳妥的是给 `SYS_USER` 增加至少一个字段：
+- `DING_USER_ID VARCHAR2(64)`
+可选再加：
+- `DING_UNION_ID VARCHAR2(64)`
+
+推荐匹配顺序：
+- 先按 `DING_USER_ID` 查
+- 没绑定时，允许按 `MOBILE` 首次自动绑定
+- 连手机号都匹配不上，就返回“请先绑定账号”
+
+对应 SQL 可以先最小化：
+```sql
+ALTER TABLE SYS_USER ADD DING_USER_ID VARCHAR2(64);
+CREATE UNIQUE INDEX UK_SYS_USER_DING_USER_ID ON SYS_USER(DING_USER_ID);
+```
+
+安全配置也要放行新接口：
+- 在 [SecurityConfig.java](/E:/workspace/dy-app/business-platform/platform-common/common-security/src/main/java/com/cjx/common/security/config/SecurityConfig.java:55) 增加 `POST /api/v1/auth/dingtalk/login` 的匿名放行
+- 如果你后面做 JSAPI 配置接口，也一并放行
+
+**前端怎么改**
+前端不用推翻现在的登录页，只要加“钉钉自动登录/一键登录”即可。
+
+你现在的登录入口在 [LoginView.vue](/E:/workspace/dy-app/web/sales-dashboard/src/views/auth/LoginView.vue:20)。建议改成：
+- 页面加载时先判断是否运行在钉钉容器内
+- 如果在钉钉内，自动触发钉钉授权拿 `authCode`
+- 成功后调用新接口 `POST /api/v1/auth/dingtalk/login`
+- 拿到后端 `LoginResponse` 后继续调用 `store.setAuth(res.data)`，这一点可以直接复用 [useGlobalStore.ts](/E:/workspace/dy-app/web/sales-dashboard/src/store/useGlobalStore.ts:60)
+- 如果不在钉钉内，继续显示原账号密码表单
+
+前端需要补的文件很少：
+- 在 [auth-api.ts](/E:/workspace/dy-app/web/sales-dashboard/src/api/auth-api.ts:4) 增加 `dingtalkLogin`
+- 在 [auth.ts](/E:/workspace/dy-app/web/sales-dashboard/src/types/auth.ts:1) 增加 `DingTalkLoginRequest`
+- 在 [LoginView.vue](/E:/workspace/dy-app/web/sales-dashboard/src/views/auth/LoginView.vue:92) 增加 `submitDingTalkLogin`
+
+接口形态建议就这么简单：
+```ts
+POST /api/v1/auth/dingtalk/login
+{
+  "authCode": "xxx"
+}
+```
+
+返回值保持和密码登录一致：
+```json
+{
+  "code": 200,
+  "message": "登录成功",
+  "data": {
+    "accessToken": "...",
+    "tokenType": "Bearer",
+    "expiresIn": 7200,
+    "userInfo": {},
+    "roles": [],
+    "permissions": []
+  }
+}
+```
+
+前端逻辑上还要注意一件事：如果你接的是钉钉 H5 微应用，拿免登码的 JSAPI 名称会随 SDK 版本表现为 `dd.runtime.permission.requestAuthCode` 或 `dd.requestAuthCode`，这点要以你接入的钉钉 JSAPI 版本为准。我这里根据官方教程分类确认了方向，但具体 JSAPI 名称你要按所用 SDK 对齐。
+
+**你这个项目里最适合的最小改法**
+- 后端新增 `POST /api/v1/auth/dingtalk/login`
+- `SystemAuthServiceImpl` 抽一个公共方法：`buildLoginResponse(SysUser user, HttpServletRequest request)`
+- 新增 `DING_USER_ID`
+- 前端登录页加钉钉自动登录
+- 保留原密码登录做兜底
+
+如果你要，我下一步可以直接按你现在这套代码，帮你把 `decision-support` 后端接口和 `sales-dashboard` 前端登录页改出来。
