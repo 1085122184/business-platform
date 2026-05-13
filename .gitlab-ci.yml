@@ -22,6 +22,8 @@ build_backend:
 deploy_backend:
   stage: deploy
   image: alpine:3.20
+  tags:
+    - prod-deploy
   needs:
     - build_backend
   rules:
