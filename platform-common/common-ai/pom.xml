@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+<parent>
+  <groupId>com.cjx</groupId>
+  <artifactId>business-platform</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <relativePath>../../pom.xml</relativePath>
+</parent>
+
+<artifactId>common-ai</artifactId>
+<packaging>jar</packaging>
+<dependencies>
+    <dependency>
+     <groupId>com.cjx</groupId>
+     <artifactId>common-core</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-starter-model-openai</artifactId>
+    </dependency>
+
+
+    <!-- PDF 文档读取（RAG 用） -->
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-pdf-document-reader</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-starter-vector-store-redis</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-advisors-vector-store</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-generator</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-module-jackson</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-module-swagger-2</artifactId>
+    </dependency>
+
+<!--    <dependency>-->
+<!--        <groupId>com.microsoft.onnxruntime</groupId>-->
+<!--        <artifactId>onnxruntime</artifactId>-->
+<!--    </dependency>-->
+
+    <dependency>
+        <groupId>org.openpnp</groupId>
+        <artifactId>opencv</artifactId>
+    </dependency>
+
+</dependencies>
+
+  </project>

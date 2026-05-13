@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.cjx</groupId>
+	<artifactId>business-platform</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<name>business-platform</name>
+	<description>企业业务平台-按业务功能拆分</description>
+
+	<!-- 子模块 -->
+	<modules>
+		<!-- 公共基础模块 -->
+		<module>platform-common/common-core</module>
+		<module>platform-common/common-redis</module>
+		<module>platform-common/common-mybatis</module>
+		<module>platform-common/common-web</module>
+		<module>platform-common/common-security</module>
+		<module>platform-common/common-strategy</module>
+		<module>platform-common/common-jpa</module>
+		<module>platform-common/common-dingtalk</module>
+		<module>platform-common/common-ai</module>
+
+		<!-- 业务模块 -->
+		<module>platform-modules/module-uibot/uibot-api</module>
+		<module>platform-modules/module-uibot/uibot-service</module>
+		<module>platform-modules/module-diff-checker/diff-checker-service</module>
+		<module>platform-modules/module-decision-support/decision-support-service</module>
+<!--		<module>platform-modules/module-user/user-api</module>-->
+<!--		<module>platform-modules/module-user/user-service</module>-->
+<!--		<module>platform-modules/module-order/order-api</module>-->
+<!--		<module>platform-modules/module-order/order-service</module>-->
+<!--		<module>platform-modules/module-product/product-api</module>-->
+<!--		<module>platform-modules/module-product/product-service</module>-->
+
+<!--		&lt;!&ndash; 应用启动模块 &ndash;&gt;-->
+<!--		<module>platform-app/app-web</module>-->
+<!--		<module>platform-app/app-admin</module>-->
+	</modules>
+
+	<properties>
+		<java.version>17</java.version>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- Spring Boot -->
+		<spring-boot.version>3.2.0</spring-boot.version>
+
+		<!-- 数据库 -->
+		<mysql.version>8.0.33</mysql.version>
+		<mybatis-plus.version>3.5.5</mybatis-plus.version>
+		<querydsl.version>5.1.0</querydsl.version>
+		<dynamic.version>4.3.1</dynamic.version>
+		<druid.version>1.2.23</druid.version>
+		<mybatis-plus-generator.version>3.5.9</mybatis-plus-generator.version>
+
+		<!-- 工具类 -->
+		<lombok.version>1.18.30</lombok.version>
+		<hutool.version>5.8.23</hutool.version>
+		<fastjson2.version>2.0.43</fastjson2.version>
+		<guava.version>32.1.3-jre</guava.version>
+		<okhttp.version>4.12.0</okhttp.version>
+
+
+		<!-- 其他 -->
+		<jwt.version>0.12.3</jwt.version>
+		<knife4j.version>4.5.0</knife4j.version>
+		<sa-token.version>1.44.0</sa-token.version>
+		<spring-ai.version>1.1.3</spring-ai.version>
+
+		<onnxruntime.version>1.20.0</onnxruntime.version>
+		<opencv.version>4.9.0-0</opencv.version>
+
+		<victools.version>4.38.0</victools.version>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<!-- Spring Boot -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>${spring-boot.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- ========== 公共基础模块 ========== -->
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-core</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-redis</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-mybatis</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-web</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-security</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-strategy</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-jpa</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-dingtalk</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>common-ai</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<!-- ========== 业务模块API ========== -->
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>uibot-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>order-api</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>product-api</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+
+<!--			&lt;!&ndash; ========== 业务模块Service ========== &ndash;&gt;-->
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>uibot-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>diff-checker-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.cjx</groupId>
+				<artifactId>decision-support-service</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>system-service</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>user-service</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>order-service</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+<!--			<dependency>-->
+<!--				<groupId>com.cjx</groupId>-->
+<!--				<artifactId>product-service</artifactId>-->
+<!--				<version>${project.version}</version>-->
+<!--			</dependency>-->
+
+			<!-- MyBatis Plus -->
+			<dependency>
+				<groupId>com.baomidou</groupId>
+				<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+				<version>${mybatis-plus.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.baomidou</groupId>
+				<artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+				<version>${dynamic.version}</version>
+			</dependency>
+
+			<!-- JPA -->
+			<dependency>
+				<groupId>com.querydsl</groupId>
+				<artifactId>querydsl-jpa</artifactId>
+				<version>${querydsl.version}</version>
+				<classifier>jakarta</classifier>
+			</dependency>
+
+			<dependency>
+				<groupId>com.querydsl</groupId>
+				<artifactId>querydsl-apt</artifactId>
+				<version>${querydsl.version}</version>
+				<classifier>jakarta</classifier>
+			</dependency>
+
+<!--			 Druid -->
+			<dependency>
+				<groupId>com.alibaba</groupId>
+				<artifactId>druid-spring-boot-3-starter</artifactId>
+				<version>${druid.version}</version>
+			</dependency>
+
+			<!-- MySQL -->
+			<dependency>
+				<groupId>com.mysql</groupId>
+				<artifactId>mysql-connector-j</artifactId>
+				<version>${mysql.version}</version>
+			</dependency>
+
+			<!-- Lombok -->
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+			</dependency>
+
+			<!-- Hutool -->
+			<dependency>
+				<groupId>cn.hutool</groupId>
+				<artifactId>hutool-all</artifactId>
+				<version>${hutool.version}</version>
+			</dependency>
+
+			<!-- FastJson2 -->
+			<dependency>
+				<groupId>com.alibaba.fastjson2</groupId>
+				<artifactId>fastjson2</artifactId>
+				<version>${fastjson2.version}</version>
+			</dependency>
+
+			<!-- Guava -->
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>${guava.version}</version>
+			</dependency>
+
+<!--			 JWT-->
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-api</artifactId>
+				<version>${jwt.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-impl</artifactId>
+				<version>${jwt.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-jackson</artifactId>
+				<version>${jwt.version}</version>
+			</dependency>
+
+			<!-- Knife4j -->
+			<dependency>
+				<groupId>com.github.xiaoymin</groupId>
+				<artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+				<version>${knife4j.version}</version>
+			</dependency>
+
+			<!-- okhttp3 -->
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>${okhttp.version}</version>
+			</dependency>
+
+			<!-- Sa-Token 权限认证，在线文档：https://sa-token.cc -->
+			<dependency>
+				<groupId>cn.dev33</groupId>
+				<artifactId>sa-token-spring-boot3-starter</artifactId>
+				<version>${sa-token.version}</version>
+			</dependency>
+
+
+			<dependency>
+				<groupId>com.microsoft.onnxruntime</groupId>
+				<artifactId>onnxruntime</artifactId>
+				<version>${onnxruntime.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.openpnp</groupId>
+				<artifactId>opencv</artifactId>
+				<version>${opencv.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.github.victools</groupId>
+				<artifactId>jsonschema-generator</artifactId>
+				<version>${victools.version}</version> </dependency>
+
+			<dependency>
+				<groupId>com.github.victools</groupId>
+				<artifactId>jsonschema-module-jackson</artifactId>
+				<version>${victools.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.github.victools</groupId>
+				<artifactId>jsonschema-module-swagger-2</artifactId>
+				<version>${victools.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+<!--		<pluginManagement>-->
+<!--			<plugins>-->
+<!--				<plugin>-->
+<!--					<groupId>org.springframework.boot</groupId>-->
+<!--					<artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--					<version>${spring-boot.version}</version>-->
+<!--				</plugin>-->
+<!--			</plugins>-->
+<!--		</pluginManagement>-->
+	</build>
+
+	<repositories>
+		<repository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/milestone</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>spring-snapshots</id>
+			<name>Spring Snapshots</name>
+			<url>https://repo.spring.io/snapshot</url>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+		</repository>
+	</repositories>
+</project>

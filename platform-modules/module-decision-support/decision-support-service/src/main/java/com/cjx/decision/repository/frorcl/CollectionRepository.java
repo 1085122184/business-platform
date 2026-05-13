@@ -1,0 +1,42 @@
+package com.cjx.decision.repository.frorcl;
+
+import com.cjx.decision.projection.frorcl.*;
+import com.cjx.decision.entity.frorcl.VLvlengRixiaoshou;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.Repository;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * 只读Repository，用于查询回款相关数据。
+ * 仅提供查询方法，不支持增删改操作。
+ *
+ * @author cuijixu
+ */
+@org.springframework.stereotype.Repository
+public interface CollectionRepository extends Repository<VLvlengRixiaoshou, Long> {
+
+    @Query(value = """
+      SELECT
+                CASE 公司编码 WHEN '1200' THEN '高分子'
+                WHEN '1300' THEN '氟硅'
+                WHEN '3000' THEN '绿冷'
+                WHEN '1400' THEN '有机硅'
+                END AS companyName,
+                SUM(回款) AS value,
+                SN,会计期间 AS yesterday
+                FROM V_HUIKUAN_ALL
+            WHERE 会计期间 = :targetDate GROUP BY 公司编码,SN,会计期间 ORDER BY SN
+      """, nativeQuery = true)
+    List<CollectionDetail> findCollectionCompanies(@Param("targetDate") String targetDate);
+
+    @Query(value = """
+      SELECT
+      COMPANY AS companyName,PLANACCOUNTS AS planValue,CHECKYEAR ||'-'|| CHECKMONTH AS yesterday
+      FROM SO_PLANACCOUNT
+      WHERE CHECKYEAR ||'-'|| CHECKMONTH =  :targetDate
+      """, nativeQuery = true)
+    List<CollectionPlan> findCollectionPlan(@Param("targetDate") String targetDate);
+}
