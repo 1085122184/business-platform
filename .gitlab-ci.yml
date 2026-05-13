@@ -13,7 +13,9 @@ cache:
 
 deploy_backend:
   stage: deploy
-  image: maven:3.9.9-eclipse-temurin-17
+  image:
+    name: maven:3.9.9-eclipse-temurin-17
+    pull_policy: if-not-present
   tags:
     - prod-deploy
   rules:
