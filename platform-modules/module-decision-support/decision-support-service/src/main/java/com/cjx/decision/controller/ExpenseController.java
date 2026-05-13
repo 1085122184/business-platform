@@ -1,12 +1,14 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.expense.*;
 import com.cjx.decision.service.ExpenseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -16,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/expense")
 @RequiredArgsConstructor
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).EXPENSE_VIEW)")
 public class ExpenseController {
 
     private final ExpenseService expenseService;

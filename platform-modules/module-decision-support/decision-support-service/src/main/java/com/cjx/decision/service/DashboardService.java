@@ -78,7 +78,7 @@ public interface DashboardService {
 
     /**
      * 查询月度销售趋势
-     * @param date 日期(未使用,默认查询到昨天)
+     * @param date 日期
      * @return 销售趋势列表
      */
     List<SalesTrendProductDTO> getSalesTrends(LocalDate date);

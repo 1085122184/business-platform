@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.dashboard.OrderDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +35,7 @@ import java.util.List;
 @Validated
 @Tag(name = "销售分析", description = "查询销售明细和公司详情数据")
 @CrossOrigin(origins = "*")
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).SALES_ANALYSIS_VIEW)")
 public class SalesAnalysisController {
 
     private final DashboardService dashboardService;

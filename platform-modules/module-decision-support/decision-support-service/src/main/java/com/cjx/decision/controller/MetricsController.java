@@ -1,6 +1,7 @@
 package com.cjx.decision.controller;
 
 import com.cjx.common.core.result.Result;
+import com.cjx.decision.constant.DecisionPermissions;
 import com.cjx.decision.dto.dashboard.DashboardMetricsDTO;
 import com.cjx.decision.dto.dashboard.DashboardOrdersDTO;
 import com.cjx.decision.service.DashboardService;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,13 +30,14 @@ import java.time.LocalDate;
 @Validated
 @Tag(name = "核心指标", description = "查询销量、销售额、回款、订单等核心指标")
 @CrossOrigin(origins = "*")
+@PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).METRICS_VIEW)")
 public class MetricsController {
     
     private final DashboardService dashboardService;
     
     /**
      * 查询核心指标(销量/销售额/回款)
-     * @param date 日期,不传默认查询昨天
+     * @param date 日期
      * @return 核心指标
      */
     @GetMapping
@@ -45,7 +48,7 @@ public class MetricsController {
     
     /**
      * 查询订单数据(本月/本年未关单)
-     * @param date 日期,不传默认查询昨天
+     * @param date 日期
      * @return 订单数据
      */
     @GetMapping("/orders")
