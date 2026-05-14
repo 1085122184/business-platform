@@ -2,6 +2,7 @@ package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
+import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.enums.RegionCode;
 import com.cjx.decision.projection.frorcl.CustomerTransactionProjection;
 import com.cjx.decision.projection.frorcl.RawPriceDeviation;
@@ -28,6 +29,7 @@ public class PriceAnalysisServiceImpl implements PriceAnalysisService {
     private final PriceAnalysisRepository priceAnalysisRepository;
     private final CaffeineCacheService caffeineCacheService;
 
+    @AutoWarmUp(order = 30)
     @Override
     public List<RawPriceDeviation> getPriceDeviations(LocalDate date) {
         String startDate = date.minusDays(7).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));

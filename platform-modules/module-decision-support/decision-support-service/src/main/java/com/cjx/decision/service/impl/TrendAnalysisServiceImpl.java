@@ -2,6 +2,7 @@ package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
+import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.constant.CompanyCodeConstant;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.dashboard.SalesTrendProductDTO;
@@ -38,6 +39,7 @@ public class TrendAnalysisServiceImpl implements TrendAnalysisService {
     private final TrendAnalysisRepository trendAnalysisRepository;
     private final CaffeineCacheService caffeineCacheService;
 
+    @AutoWarmUp(order = 50)
     @Override
     public List<SalesTrendProductDTO> getMonthlyTrends(LocalDate date) {
         List<SalesTrendProductDTO> resultList = new ArrayList<>();

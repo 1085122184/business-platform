@@ -2,6 +2,7 @@ package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
+import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.dto.dashboard.DashboardMetricsDTO;
 import com.cjx.decision.dto.dashboard.DashboardOrdersDTO;
 import com.cjx.decision.dto.dashboard.RawCollection;
@@ -30,6 +31,7 @@ public class MetricsServiceImpl implements MetricsService {
     private final MetricsRepository metricsRepository;
     private final CaffeineCacheService caffeineCacheService;
 
+    @AutoWarmUp(order = 10)
     @Override
     public DashboardMetricsDTO getMetrics(LocalDate date) {
         String dateStr = date.format(DATE_FORMATTER);
@@ -109,6 +111,7 @@ public class MetricsServiceImpl implements MetricsService {
         return dto;
     }
 
+    @AutoWarmUp(order = 20)
     @Override
     public DashboardOrdersDTO getOrders(LocalDate targetDate) {
         DashboardOrdersDTO dto = new DashboardOrdersDTO();
