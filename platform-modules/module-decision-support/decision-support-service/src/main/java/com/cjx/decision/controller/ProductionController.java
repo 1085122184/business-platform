@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,7 @@ public class ProductionController {
 
     @Operation(summary = "生产运营总览")
     @GetMapping("/overview")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_VIEW)")
     public Result<ProductionOverviewDTO> getOverview(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -44,6 +46,7 @@ public class ProductionController {
 
     @Operation(summary = "按物料组查询产量")
     @GetMapping("/output/by-material-group")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_VIEW)")
     public Result<List<ProductionRankItemDTO>> getOutputByMaterialGroup(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -53,6 +56,7 @@ public class ProductionController {
 
     @Operation(summary = "按物料查询原料消耗")
     @GetMapping("/raw-consumption/by-material")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_VIEW)")
     public Result<List<ProductionRankItemDTO>> getRawConsumptionByMaterial(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -62,6 +66,7 @@ public class ProductionController {
 
     @Operation(summary = "产品库存")
     @GetMapping("/product-inventory")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_VIEW)")
     public Result<List<ProductionRankItemDTO>> getProductInventory(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -71,6 +76,7 @@ public class ProductionController {
 
     @Operation(summary = "按工厂查询车辆吞吐")
     @GetMapping("/throughput/by-factory")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_VIEW)")
     public Result<List<ProductionRankItemDTO>> getThroughputByFactory(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -80,6 +86,7 @@ public class ProductionController {
 
     @Operation(summary = "产量明细")
     @GetMapping("/output/details")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_DETAIL_VIEW)")
     public Result<ProductionDetailPageDTO<ProductionOutputDetailDTO>> getOutputDetails(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -94,6 +101,7 @@ public class ProductionController {
 
     @Operation(summary = "原料消耗明细")
     @GetMapping("/raw-consumption/details")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_DETAIL_VIEW)")
     public Result<ProductionDetailPageDTO<ProductionRawConsumptionDetailDTO>> getRawConsumptionDetails(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")
@@ -108,6 +116,7 @@ public class ProductionController {
 
     @Operation(summary = "车辆运输明细")
     @GetMapping("/transport/details")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.DecisionPermissions).PRODUCTION_DETAIL_VIEW)")
     public Result<ProductionDetailPageDTO<ProductionTransportDetailDTO>> getTransportDetails(
             @NotNull(message = "日期不能为空")
             @RequestParam("date")

@@ -2,7 +2,6 @@ stages:
   - deploy
 
 variables:
-  DEPLOY_DIR: "/home/dyroot/workspace/data_analysis"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
   MAVEN_CLI_OPTS: "-B -T 1C -DskipTests -DskipITs"
 
@@ -15,16 +14,16 @@ cache:
   stage: deploy
   image:
     name: maven:3.9.9-eclipse-temurin-17
+    pull_policy: if-not-present
   tags:
     - prod-deploy
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "auth_branch"'
-      when: manual
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends openssh-client && rm -rf /var/lib/apt/lists/*
     - test -n "$DEPLOY_HOST"
     - test -n "$DEPLOY_USER"
-    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}"
+    - test -n "$DEPLOY_DIR"
+    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
+    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}, dir=${DEPLOY_DIR}"
     - eval "$(ssh-agent -s)"
     - chmod 400 "$DEPLOY_SSH_PRIVATE_KEY"
     - ssh-add "$DEPLOY_SSH_PRIVATE_KEY"
@@ -67,7 +66,7 @@ deploy_backend_without_auth:
     DEPLOY_USER: "root"
     DEPLOY_DIR: "/home/workspace/data_analysis"
   rules:
-    - if: '$CI_COMMIT_BRANCH == "ai_master"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
   environment:
     name: noauth-prod
