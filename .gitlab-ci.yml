@@ -3,7 +3,7 @@ stages:
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
-  MAVEN_CLI_OPTS: "-B -T 1C -DskipTests -DskipITs"
+  MAVEN_CLI_OPTS: "-B -DskipTests -DskipITs -Dmaven.artifact.threads=1"
 
 cache:
   key: "maven-${CI_COMMIT_REF_SLUG}"
@@ -12,6 +12,7 @@ cache:
 
 .deploy_backend_template:
   stage: deploy
+  resource_group: backend-deploy-$CI_COMMIT_REF_SLUG
   image:
     name: maven:3.9.9-eclipse-temurin-17
     pull_policy: if-not-present
@@ -30,7 +31,7 @@ cache:
     - mkdir -p ~/.ssh
     - ssh-keyscan -p "${DEPLOY_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
   script:
-    - mvn $MAVEN_CLI_OPTS -pl :decision-support-service -am package
+    - mvn -s ci/settings-ci.xml $MAVEN_CLI_OPTS -pl :decision-support-service -am package
     - mkdir -p release
     - cp platform-modules/module-decision-support/decision-support-service/target/decision-support-service-*.jar release/app.jar
     - scp -P "${DEPLOY_PORT:-22}" release/app.jar "$DEPLOY_USER@$DEPLOY_HOST:/tmp/data-analysis-app.jar"
