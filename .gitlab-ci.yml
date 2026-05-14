@@ -2,7 +2,6 @@ stages:
   - deploy
 
 variables:
-  DEPLOY_DIR: "/home/dyroot/workspace/data_analysis"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
   MAVEN_CLI_OPTS: "-B -T 1C -DskipTests -DskipITs"
 
@@ -11,21 +10,20 @@ cache:
   paths:
     - .m2/repository/
 
-deploy_backend:
+.deploy_backend_template:
   stage: deploy
   image:
     name: maven:3.9.9-eclipse-temurin-17
     pull_policy: if-not-present
   tags:
     - prod-deploy
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "auth_branch" || $CI_COMMIT_BRANCH == "ai_master"'
-      when: manual
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends openssh-client && rm -rf /var/lib/apt/lists/*
     - test -n "$DEPLOY_HOST"
     - test -n "$DEPLOY_USER"
-    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}"
+    - test -n "$DEPLOY_DIR"
+    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
+    - echo "Deploy target ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PORT:-22}, dir=${DEPLOY_DIR}"
     - eval "$(ssh-agent -s)"
     - chmod 400 "$DEPLOY_SSH_PRIVATE_KEY"
     - ssh-add "$DEPLOY_SSH_PRIVATE_KEY"
@@ -46,3 +44,29 @@ deploy_backend:
         docker compose up -d --build backend
         docker image prune -f
       "
+
+deploy_backend_auth:
+  extends: .deploy_backend_template
+  variables:
+    DEPLOY_HOST: "192.168.200.53"
+    DEPLOY_PORT: "22"
+    DEPLOY_USER: "dyroot"
+    DEPLOY_DIR: "/home/dyroot/workspace/data_analysis"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "auth_branch"'
+      when: manual
+  environment:
+    name: auth-prod
+
+deploy_backend_without_auth:
+  extends: .deploy_backend_template
+  variables:
+    DEPLOY_HOST: "192.168.200.40"
+    DEPLOY_PORT: "22"
+    DEPLOY_USER: "root"
+    DEPLOY_DIR: "/root/workspace/data_analysis"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "ai_master"'
+      when: manual
+  environment:
+    name: noauth-prod
