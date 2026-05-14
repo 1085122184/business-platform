@@ -64,7 +64,7 @@ deploy_backend_without_auth:
     DEPLOY_HOST: "192.168.200.40"
     DEPLOY_PORT: "22"
     DEPLOY_USER: "root"
-    DEPLOY_DIR: "/root/workspace/data_analysis"
+    DEPLOY_DIR: "/home/workspace/data_analysis"
   rules:
     - if: '$CI_COMMIT_BRANCH == "ai_master"'
       when: manual
