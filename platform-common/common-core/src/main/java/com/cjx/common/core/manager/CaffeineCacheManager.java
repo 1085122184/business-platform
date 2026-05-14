@@ -67,6 +67,13 @@ public class CaffeineCacheManager {
     }
 
     /**
+     * 获取指定缓存的当前条目快照。
+     */
+    public Map<String, Object> asMap(CacheType cacheType) {
+        return getCache(cacheType).asMap();
+    }
+
+    /**
      * 应用关闭时清理所有缓存
      */
     @PreDestroy

@@ -3,9 +3,9 @@ package com.cjx.decision.manager;
 import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.event.CacheWarmUpEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.scheduling.annotation.Async;
@@ -15,6 +15,7 @@ import org.springframework.util.ReflectionUtils;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -25,10 +26,12 @@ import java.util.List;
 @Component
 public class CacheWarmUpEngine {
     private final ApplicationContext applicationContext;
+    private final ApplicationEventPublisher eventPublisher;
     private final List<WarmUpTask> warmUpTasks = new ArrayList<>();
 
-    public CacheWarmUpEngine(ApplicationContext applicationContext) {
+    public CacheWarmUpEngine(ApplicationContext applicationContext, ApplicationEventPublisher eventPublisher) {
         this.applicationContext = applicationContext;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -36,22 +39,28 @@ public class CacheWarmUpEngine {
      */
     @EventListener(ApplicationReadyEvent.class)
     public void initScanner() {
+        warmUpTasks.clear();
         String[] beanNames = applicationContext.getBeanNamesForType(Object.class);
         for (String beanName : beanNames) {
             Class<?> type = applicationContext.getType(beanName);
             if (type != null && !type.getName().startsWith("org.springframework")) {
                 ReflectionUtils.doWithMethods(type, method -> {
-                    if (AnnotationUtils.findAnnotation(method, AutoWarmUp.class) != null) {
+                    AutoWarmUp autoWarmUp = AnnotationUtils.findAnnotation(method, AutoWarmUp.class);
+                    if (autoWarmUp != null) {
                         if (method.getParameterCount() == 1 && method.getParameterTypes()[0].equals(LocalDate.class)) {
                             Object bean = applicationContext.getBean(beanName);
-                            warmUpTasks.add(new WarmUpTask(bean, method));
-                            log.info("[预热引擎] 成功注册自动预热任务: {}.{}", type.getSimpleName(), method.getName());
+                            warmUpTasks.add(new WarmUpTask(bean, method, autoWarmUp.order()));
+                            log.info("[预热引擎] 成功注册自动预热任务: {}.{}, order={}", type.getSimpleName(), method.getName(), autoWarmUp.order());
                         } else {
                             log.error("[预热引擎] 注册失败！@AutoWarmUp 标注的方法必须且只能包含一个 LocalDate 参数: {}.{}", type.getSimpleName(), method.getName());
                         }
                     }
                 });
             }
+        }
+        warmUpTasks.sort(Comparator.comparingInt(task -> task.order));
+        if (!warmUpTasks.isEmpty()) {
+            eventPublisher.publishEvent(new CacheWarmUpEvent(this, LocalDate.now()));
         }
     }
 
@@ -79,9 +88,11 @@ public class CacheWarmUpEngine {
     private static class WarmUpTask {
         final Object bean;
         final Method method;
-        WarmUpTask(Object bean, Method method) {
+        final int order;
+        WarmUpTask(Object bean, Method method, int order) {
             this.bean = bean;
             this.method = method;
+            this.order = order;
         }
     }
 }

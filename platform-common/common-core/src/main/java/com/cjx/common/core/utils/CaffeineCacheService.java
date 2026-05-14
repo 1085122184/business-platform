@@ -108,6 +108,15 @@ public class CaffeineCacheService {
         return getCache(cacheType).getIfPresent(key) != null;
     }
 
+    /**
+     * 获取指定缓存 key 的原始内容，便于管理端排查缓存数据。
+     */
+    public Object getValue(CacheType cacheType, String key) {
+        checkParams(cacheType, key);
+        Object value = getCache(cacheType).getIfPresent(key);
+        return value == NULL_PLACEHOLDER ? null : value;
+    }
+
     // ===================== 回源加载（Loading Cache）=====================
 
     /**
@@ -284,6 +293,22 @@ public class CaffeineCacheService {
         return getStats(cacheType).hitRate();
     }
 
+    public long getHitCount(CacheType cacheType) {
+        return getStats(cacheType).hitCount();
+    }
+
+    public long getMissCount(CacheType cacheType) {
+        return getStats(cacheType).missCount();
+    }
+
+    public long getLoadSuccessCount(CacheType cacheType) {
+        return getStats(cacheType).loadSuccessCount();
+    }
+
+    public long getEvictionCount(CacheType cacheType) {
+        return getStats(cacheType).evictionCount();
+    }
+
     /**
      * 获取缓存当前估算大小
      *
@@ -293,6 +318,17 @@ public class CaffeineCacheService {
     public long getEstimatedSize(CacheType cacheType) {
         Objects.requireNonNull(cacheType, "cacheType 不能为空");
         return getCache(cacheType).estimatedSize();
+    }
+
+    /**
+     * 查看指定缓存中的 key 列表。
+     */
+    public List<String> listKeys(CacheType cacheType, int limit) {
+        Objects.requireNonNull(cacheType, "cacheType 不能为空");
+        int safeLimit = limit <= 0 ? 100 : Math.min(limit, 1000);
+        return cacheManager.asMap(cacheType).keySet().stream()
+                .limit(safeLimit)
+                .toList();
     }
 
     /**

@@ -2,6 +2,7 @@ package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
+import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.constant.CompanyCodeConstant;
 import com.cjx.decision.dto.salesdetail.CompanyDetailDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
@@ -45,6 +46,12 @@ public class SalesAnalysisServiceImpl implements SalesAnalysisService {
             CacheType.TODAY_DATA, key,
             k -> findSaleDetails(type, date)
         );
+    }
+
+    @AutoWarmUp(order = 40)
+    public void warmUpCompanyList(LocalDate date) {
+        getCompanyList(MetricType.VOLUME.getCode(), date);
+        getCompanyList(MetricType.AMOUNT.getCode(), date);
     }
 
     private List<CompanyMetricDTO> findSaleDetails(String type, LocalDate targetDate) {

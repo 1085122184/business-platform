@@ -2,7 +2,6 @@ package com.cjx.decision.service.impl;
 
 import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
-import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.constant.CompanyCodeConstant;
 import com.cjx.decision.dto.dashboard.SalesTrendPointDTO;
 import com.cjx.decision.dto.salesdetail.CompanyMetricDTO;
@@ -36,7 +35,6 @@ public class SalesServiceImpl implements SalesService {
     private final SalesRepository salesRepository;
     private final CaffeineCacheService caffeineCacheService;
 
-    @AutoWarmUp
     @Override
     public SalesSummary findSummaryByDate(LocalDate date) {
 //        String yesterday = LocalDate.now().minusDays(1)
@@ -47,14 +45,12 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryByDate(yesterday),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findSummaryToToday(LocalDate date) {
         String key = "totalSalesList:" + date;
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findSummaryToToday(date),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findCountBudget(LocalDate date) {
         String yesterday = date.minusDays(1)
@@ -63,7 +59,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCountBudget(yesterday),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findAmountBudget(LocalDate date) {
         String yesterday = date.minusDays(1)
@@ -72,7 +67,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findAmountBudget(yesterday),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findMonthOrder(LocalDate targetDate) {
         String thisMonth = targetDate.minusDays(1).withDayOfMonth(1)
@@ -83,7 +77,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findMonthOrder(thisMonth,lastMonth,targetDate),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findYearOrder(LocalDate targetDate) {
         String thisYear = targetDate.minusDays(1).withDayOfMonth(1)
@@ -94,7 +87,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findYearOrder(thisYear,yesterday),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public SalesSummary findCollection(LocalDate date) {
         LocalDate yesterday = date.minusDays(1);
@@ -102,7 +94,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoad(CacheType.TODAY_DATA,key, k -> salesRepository.findCollection(yesterday),SalesSummary.class);
     }
 
-    @AutoWarmUp
     @Override
     public List<RawPriceDeviation> findPriceDiff(LocalDate date) {
         String startDate = date.minusDays(7)
@@ -189,7 +180,6 @@ public class SalesServiceImpl implements SalesService {
         return caffeineCacheService.getOrLoadList(CacheType.TODAY_DATA,key, k -> salesRepository.findTrendsToday(targetDate));
     }
 
-    @AutoWarmUp
     @Override
     public List<SalesSummary> findTrendsAll(LocalDate endLocalDate) {
         String startDate = endLocalDate.minusDays(29).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -226,7 +216,6 @@ public class SalesServiceImpl implements SalesService {
     }
 
 
-    @AutoWarmUp
     public void warmUpComplexData(LocalDate targetDate) {
         this.findSaleDetails(MetricType.VOLUME.getCode(), targetDate);
         this.findSaleDetails(MetricType.AMOUNT.getCode(), targetDate);
