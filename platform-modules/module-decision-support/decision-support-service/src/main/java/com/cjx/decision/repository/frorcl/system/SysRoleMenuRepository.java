@@ -19,6 +19,8 @@ public interface SysRoleMenuRepository extends JpaRepository<SysRoleMenu, SysRol
     @Query("select rm.id.menuId from SysRoleMenu rm where rm.id.roleId = :roleId")
     List<Long> findMenuIdsByRoleId(@Param("roleId") Long roleId);
 
+    boolean existsByIdRoleIdAndIdMenuId(Long roleId, Long menuId);
+
     @Modifying
     @Query("delete from SysRoleMenu rm where rm.id.roleId = :roleId")
     void deleteByRoleId(@Param("roleId") Long roleId);

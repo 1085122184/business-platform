@@ -6,6 +6,13 @@ import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.common.jpa.query.JpaQueryHelper;
 import com.cjx.common.jpa.utils.EntityDtoConverter;
 import com.cjx.decision.dto.system.role.MenuTreeNodeResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditFixResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditIssueResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditPermissionRequest;
+import com.cjx.decision.dto.system.role.PermissionAuditRequest;
+import com.cjx.decision.dto.system.role.PermissionAuditResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditRouteRequest;
+import com.cjx.decision.dto.system.role.PermissionAuditSummaryResponse;
 import com.cjx.decision.dto.system.role.RolePageResponse;
 import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleResponse;
@@ -47,6 +54,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -56,6 +65,12 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Transactional(transactionManager = "frorclTransactionManager")
 public class SystemRoleServiceImpl implements SystemRoleService {
+
+    private static final String ADMIN_ROLE_KEY = "system:admin";
+    private static final long ROOT_PARENT_ID = 0L;
+    private static final String ROUTE_PERMISSION_MENU_TYPE = "C";
+    private static final int DEFAULT_MENU_STATUS = 1;
+    private static final int DEFAULT_MENU_ORDER = 999;
 
     private final SysRoleRepository sysRoleRepository;
     private final SysMenuRepository sysMenuRepository;
@@ -232,6 +247,13 @@ public class SystemRoleServiceImpl implements SystemRoleService {
             node.setId(menu.getId());
             node.setMenuName(menu.getMenuName());
             node.setParentId(menu.getParentId());
+            node.setMenuType(menu.getMenuType());
+            node.setPath(menu.getPath());
+            node.setComponent(menu.getComponent());
+            node.setPerms(menu.getPerms());
+            node.setIcon(menu.getIcon());
+            node.setOrderNum(menu.getOrderNum());
+            node.setRemark(menu.getRemark());
             nodeMap.put(node.getId(), node);
         }
 
@@ -281,6 +303,71 @@ public class SystemRoleServiceImpl implements SystemRoleService {
         return true;
     }
 
+    @Override
+    @Transactional(readOnly = true, transactionManager = "frorclTransactionManager")
+    public PermissionAuditResponse auditRoutePermissions(PermissionAuditRequest request) {
+        return buildPermissionAuditResponse(normalizeAuditRoutes(request));
+    }
+
+    @Override
+    public PermissionAuditFixResponse fixMissingRoutePermissions(PermissionAuditRequest request) {
+        List<PermissionAuditRouteRequest> routes = normalizeAuditRoutes(request);
+        PermissionAuditResponse beforeFix = buildPermissionAuditResponse(routes);
+        Map<String, PermissionAuditRouteRequest> missingRoutes = new LinkedHashMap<>();
+
+        for (PermissionAuditIssueResponse issue : beforeFix.getIssues()) {
+            if ("missing-permission".equals(issue.getType())
+                    && Boolean.TRUE.equals(issue.getFixable())
+                    && StringUtils.hasText(issue.getPermission())) {
+                findRouteByPermission(routes, issue.getPermission())
+                        .ifPresent(route -> missingRoutes.put(issue.getPermission(), route));
+            }
+        }
+
+        int insertedCount = 0;
+        SysMenu parent = ensureRoutePermissionRootMenu();
+        Optional<SysRole> adminRole = sysRoleRepository.findByRoleKey(ADMIN_ROLE_KEY);
+        Set<String> existingPaths = sysMenuRepository.findByStatusOrderByOrderNumAscIdAsc(DEFAULT_MENU_STATUS).stream()
+                .map(SysMenu::getPath)
+                .map(this::normalizePath)
+                .filter(StringUtils::hasText)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        for (Map.Entry<String, PermissionAuditRouteRequest> entry : missingRoutes.entrySet()) {
+            String permission = entry.getKey();
+            if (sysMenuRepository.existsByPerms(permission)) {
+                continue;
+            }
+
+            PermissionAuditRouteRequest route = entry.getValue();
+            SysMenu menu = new SysMenu();
+            menu.setParentId(parent.getId());
+            menu.setMenuName(resolveMenuName(route, permission));
+            String routePath = normalizePath(route.getPath());
+            boolean canUseRoutePath = StringUtils.hasText(routePath) && !existingPaths.contains(routePath);
+            menu.setMenuType(canUseRoutePath ? ROUTE_PERMISSION_MENU_TYPE : "B");
+            menu.setPath(canUseRoutePath ? routePath : null);
+            menu.setComponent(null);
+            menu.setPerms(permission);
+            menu.setIcon(null);
+            menu.setOrderNum(resolveNextOrderNum(parent.getId()));
+            menu.setStatus(DEFAULT_MENU_STATUS);
+            menu.setRemark("由权限体检自动补入：" + nullToFallback(route.getTitle(), route.getPath()));
+            SysMenu saved = sysMenuRepository.save(menu);
+            if (canUseRoutePath) {
+                existingPaths.add(routePath);
+            }
+            adminRole.ifPresent(role -> grantMenuToRoleIfAbsent(role.getId(), saved.getId()));
+            insertedCount++;
+        }
+
+        PermissionAuditFixResponse response = new PermissionAuditFixResponse();
+        response.setInsertedCount(insertedCount);
+        response.setSkippedCount(Math.max(0, missingRoutes.size() - insertedCount));
+        response.setAudit(buildPermissionAuditResponse(routes));
+        return response;
+    }
+
     private Specification<SysRole> buildRoleSpecification(RoleQueryRequest request) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -295,6 +382,277 @@ public class SystemRoleServiceImpl implements SystemRoleService {
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private PermissionAuditResponse buildPermissionAuditResponse(List<PermissionAuditRouteRequest> routes) {
+        Set<String> permissions = new LinkedHashSet<>();
+        Set<String> paths = new LinkedHashSet<>();
+        for (PermissionAuditRouteRequest route : routes) {
+            paths.add(route.getPath());
+            for (PermissionAuditPermissionRequest permission : route.getPermissions()) {
+                permissions.add(permission.getPermission());
+            }
+        }
+
+        List<SysMenu> permissionMenus = permissions.isEmpty()
+                ? java.util.Collections.emptyList()
+                : sysMenuRepository.findByPermsIn(permissions);
+        List<SysMenu> pathMenus = paths.isEmpty()
+                ? java.util.Collections.emptyList()
+                : sysMenuRepository.findByPathIn(paths);
+        List<SysMenu> allMenus = sysMenuRepository.findByStatusOrderByOrderNumAscIdAsc(DEFAULT_MENU_STATUS);
+
+        Map<String, List<SysMenu>> menusByPerms = groupByPermission(permissionMenus);
+        Map<String, List<SysMenu>> menusByPath = groupByPath(pathMenus);
+        Map<String, List<SysMenu>> allMenusByPath = groupByPath(allMenus);
+        Set<String> routePaths = new LinkedHashSet<>(paths);
+        List<PermissionAuditIssueResponse> issues = new ArrayList<>();
+
+        for (PermissionAuditRouteRequest route : routes) {
+            for (PermissionAuditPermissionRequest permission : route.getPermissions()) {
+                if (!menusByPerms.containsKey(permission.getPermission())) {
+                    issues.add(createIssue(
+                            "missing-permission",
+                            "error",
+                            route.getPath(),
+                            route.getTitle(),
+                            null,
+                            permission.getPermission(),
+                            true,
+                            nullToFallback(route.getTitle(), route.getPath())
+                                    + " 使用的权限 " + permission.getPermission() + " 不存在于数据库 SYS_MENU"
+                    ));
+                }
+            }
+
+            if (Boolean.TRUE.equals(route.getMenuPathRequired()) && !menusByPath.containsKey(route.getPath())) {
+                issues.add(createIssue(
+                        "missing-route-path",
+                        "warning",
+                        route.getPath(),
+                        route.getTitle(),
+                        null,
+                        route.getPermissions().stream()
+                                .map(PermissionAuditPermissionRequest::getPermission)
+                                .filter(StringUtils::hasText)
+                                .findFirst()
+                                .orElse(null),
+                        false,
+                        nullToFallback(route.getTitle(), route.getPath()) + " 未在数据库 SYS_MENU.PATH 中登记"
+                ));
+            }
+        }
+
+        for (Map.Entry<String, List<SysMenu>> entry : allMenusByPath.entrySet()) {
+            String path = entry.getKey();
+            List<SysMenu> menus = entry.getValue();
+            if (menus.size() > 1) {
+                issues.add(createIssue(
+                        "duplicate-menu-path",
+                        "warning",
+                        path,
+                        null,
+                        menus.stream().map(SysMenu::getMenuName).filter(StringUtils::hasText).reduce((a, b) -> a + ", " + b).orElse(null),
+                        null,
+                        false,
+                        "数据库 SYS_MENU.PATH " + path + " 存在 " + menus.size() + " 条记录"
+                ));
+            }
+            boolean hasPageMenu = menus.stream().anyMatch(menu -> "C".equals(menu.getMenuType()));
+            if (hasPageMenu && !"/".equals(path) && !routePaths.contains(path)) {
+                issues.add(createIssue(
+                        "orphan-menu-path",
+                        "warning",
+                        path,
+                        null,
+                        menus.stream().map(SysMenu::getMenuName).filter(StringUtils::hasText).reduce((a, b) -> a + ", " + b).orElse(null),
+                        null,
+                        false,
+                        "数据库 SYS_MENU.PATH " + path + " 在当前前端受控路由中不存在"
+                ));
+            }
+        }
+
+        int errorCount = (int) issues.stream().filter(issue -> "error".equals(issue.getSeverity())).count();
+        int warningCount = issues.size() - errorCount;
+        int fixableCount = (int) issues.stream().filter(issue -> Boolean.TRUE.equals(issue.getFixable())).count();
+
+        PermissionAuditSummaryResponse summary = new PermissionAuditSummaryResponse();
+        summary.setProtectedRouteCount(routes.size());
+        summary.setMenuPathCount(allMenusByPath.size());
+        summary.setMenuPermissionCount(groupByPermission(allMenus).size());
+        summary.setErrorCount(errorCount);
+        summary.setWarningCount(warningCount);
+        summary.setFixableCount(fixableCount);
+
+        PermissionAuditResponse response = new PermissionAuditResponse();
+        response.setSummary(summary);
+        response.setRoutes(routes);
+        response.setIssues(issues);
+        return response;
+    }
+
+    private List<PermissionAuditRouteRequest> normalizeAuditRoutes(PermissionAuditRequest request) {
+        Map<String, PermissionAuditRouteRequest> routeMap = new LinkedHashMap<>();
+        if (request == null || request.getRoutes() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        for (PermissionAuditRouteRequest route : request.getRoutes()) {
+            if (route == null || !StringUtils.hasText(route.getPath())) {
+                continue;
+            }
+
+            String path = normalizePath(route.getPath());
+            PermissionAuditRouteRequest target = routeMap.computeIfAbsent(path, key -> {
+                PermissionAuditRouteRequest item = new PermissionAuditRouteRequest();
+                item.setPath(key);
+                item.setName(trimToNull(route.getName()));
+                item.setTitle(nullToFallback(trimToNull(route.getTitle()), key));
+                item.setMenuPathRequired(Boolean.TRUE.equals(route.getMenuPathRequired()));
+                return item;
+            });
+
+            Map<String, PermissionAuditPermissionRequest> permissionMap = new LinkedHashMap<>();
+            for (PermissionAuditPermissionRequest existing : target.getPermissions()) {
+                permissionMap.put(existing.getPermission(), existing);
+            }
+
+            if (route.getPermissions() != null) {
+                for (PermissionAuditPermissionRequest permission : route.getPermissions()) {
+                    if (permission == null || !StringUtils.hasText(permission.getPermission())) {
+                        continue;
+                    }
+                    String permissionKey = permission.getPermission().trim();
+                    permissionMap.computeIfAbsent(permissionKey, key -> {
+                        PermissionAuditPermissionRequest item = new PermissionAuditPermissionRequest();
+                        item.setPermission(key);
+                        item.setLabel(nullToFallback(trimToNull(permission.getLabel()), nullToFallback(route.getTitle(), key)));
+                        return item;
+                    });
+                }
+            }
+
+            target.setPermissions(new ArrayList<>(permissionMap.values()));
+        }
+
+        return routeMap.values().stream()
+                .filter(route -> route.getPermissions() != null && !route.getPermissions().isEmpty())
+                .toList();
+    }
+
+    private Map<String, List<SysMenu>> groupByPermission(List<SysMenu> menus) {
+        Map<String, List<SysMenu>> result = new LinkedHashMap<>();
+        for (SysMenu menu : menus) {
+            if (!StringUtils.hasText(menu.getPerms())) {
+                continue;
+            }
+            result.computeIfAbsent(menu.getPerms().trim(), key -> new ArrayList<>()).add(menu);
+        }
+        return result;
+    }
+
+    private Map<String, List<SysMenu>> groupByPath(List<SysMenu> menus) {
+        Map<String, List<SysMenu>> result = new LinkedHashMap<>();
+        for (SysMenu menu : menus) {
+            String path = normalizePath(menu.getPath());
+            if (!StringUtils.hasText(path)) {
+                continue;
+            }
+            result.computeIfAbsent(path, key -> new ArrayList<>()).add(menu);
+        }
+        return result;
+    }
+
+    private Optional<PermissionAuditRouteRequest> findRouteByPermission(List<PermissionAuditRouteRequest> routes, String permission) {
+        return routes.stream()
+                .filter(route -> route.getPermissions().stream()
+                        .anyMatch(item -> Objects.equals(item.getPermission(), permission)))
+                .findFirst();
+    }
+
+    private PermissionAuditIssueResponse createIssue(
+            String type,
+            String severity,
+            String routePath,
+            String routeTitle,
+            String menuName,
+            String permission,
+            Boolean fixable,
+            String message
+    ) {
+        PermissionAuditIssueResponse issue = new PermissionAuditIssueResponse();
+        issue.setType(type);
+        issue.setSeverity(severity);
+        issue.setRoutePath(routePath);
+        issue.setRouteTitle(routeTitle);
+        issue.setMenuName(menuName);
+        issue.setPermission(permission);
+        issue.setFixable(fixable);
+        issue.setMessage(message);
+        return issue;
+    }
+
+    private SysMenu ensureRoutePermissionRootMenu() {
+        return sysMenuRepository.findFirstByMenuNameAndMenuTypeAndParentId("自动补入权限", "M", ROOT_PARENT_ID)
+                .orElseGet(() -> {
+                    SysMenu menu = new SysMenu();
+                    menu.setParentId(ROOT_PARENT_ID);
+                    menu.setMenuName("自动补入权限");
+                    menu.setMenuType("M");
+                    menu.setPath(null);
+                    menu.setComponent(null);
+                    menu.setPerms(null);
+                    menu.setIcon(null);
+                    menu.setOrderNum(DEFAULT_MENU_ORDER);
+                    menu.setStatus(DEFAULT_MENU_STATUS);
+                    menu.setRemark("权限体检自动创建的缺失权限目录");
+                    return sysMenuRepository.save(menu);
+                });
+    }
+
+    private String resolveMenuName(PermissionAuditRouteRequest route, String permission) {
+        return route.getPermissions().stream()
+                .filter(item -> Objects.equals(item.getPermission(), permission))
+                .map(PermissionAuditPermissionRequest::getLabel)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .orElseGet(() -> nullToFallback(route.getTitle(), permission));
+    }
+
+    private Integer resolveNextOrderNum(Long parentId) {
+        return sysMenuRepository.findByStatusOrderByOrderNumAscIdAsc(DEFAULT_MENU_STATUS).stream()
+                .filter(menu -> Objects.equals(menu.getParentId(), parentId))
+                .map(SysMenu::getOrderNum)
+                .filter(Objects::nonNull)
+                .max(Integer::compareTo)
+                .map(order -> order + 1)
+                .orElse(1);
+    }
+
+    private void grantMenuToRoleIfAbsent(Long roleId, Long menuId) {
+        if (sysRoleMenuRepository.existsByIdRoleIdAndIdMenuId(roleId, menuId)) {
+            return;
+        }
+        SysRoleMenu relation = new SysRoleMenu();
+        relation.setId(new SysRoleMenuId(roleId, menuId));
+        sysRoleMenuRepository.save(relation);
+        evictRolePermissionCache(roleId);
+    }
+
+    private String normalizePath(String path) {
+        if (!StringUtils.hasText(path)) {
+            return "";
+        }
+        String normalized = path.trim().replaceAll("/+", "/");
+        if ("/".equals(normalized)) {
+            return normalized;
+        }
+        return normalized.endsWith("/") ? normalized.substring(0, normalized.length() - 1) : normalized;
+    }
+
+    private String nullToFallback(String value, String fallback) {
+        return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
     private Specification<SysUser> buildUserSpecification(UserQueryRequest request) {

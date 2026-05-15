@@ -3,6 +3,9 @@ package com.cjx.decision.controller;
 import com.cjx.common.core.result.Result;
 import com.cjx.decision.constant.SystemRolePermissions;
 import com.cjx.decision.dto.system.role.MenuTreeNodeResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditFixResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditRequest;
+import com.cjx.decision.dto.system.role.PermissionAuditResponse;
 import com.cjx.decision.dto.system.role.RolePageResponse;
 import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleSaveRequest;
@@ -102,6 +105,20 @@ public class SystemRoleController {
     @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).LIST)")
     public Result<List<MenuTreeNodeResponse>> getMenuTree() {
         return Result.success(systemRoleService.getMenuTree());
+    }
+
+    @Operation(summary = "体检前端路由权限与数据库菜单")
+    @PostMapping("/permission-audit")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).LIST)")
+    public Result<PermissionAuditResponse> auditRoutePermissions(@Valid @RequestBody PermissionAuditRequest request) {
+        return Result.success(systemRoleService.auditRoutePermissions(request));
+    }
+
+    @Operation(summary = "补入缺失的前端路由权限")
+    @PostMapping("/permission-audit/fix")
+    @PreAuthorize("@ss.hasPermi(T(com.cjx.decision.constant.SystemRolePermissions).GRANT)")
+    public Result<PermissionAuditFixResponse> fixMissingRoutePermissions(@Valid @RequestBody PermissionAuditRequest request) {
+        return Result.success("补入成功", systemRoleService.fixMissingRoutePermissions(request));
     }
 
     @Operation(summary = "查询角色已分配菜单")

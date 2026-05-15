@@ -17,5 +17,19 @@ public class MenuTreeNodeResponse {
 
     private Long parentId;
 
+    private String menuType;
+
+    private String path;
+
+    private String component;
+
+    private String perms;
+
+    private String icon;
+
+    private Integer orderNum;
+
+    private String remark;
+
     private List<MenuTreeNodeResponse> children = new ArrayList<>();
 }

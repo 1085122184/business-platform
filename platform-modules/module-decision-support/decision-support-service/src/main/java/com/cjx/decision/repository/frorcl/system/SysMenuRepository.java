@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for SYS_MENU.
@@ -18,6 +19,14 @@ public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
     List<SysMenu> findByStatusOrderByOrderNumAscIdAsc(Integer status);
 
     long countByIdIn(Collection<Long> ids);
+
+    List<SysMenu> findByPermsIn(Collection<String> perms);
+
+    List<SysMenu> findByPathIn(Collection<String> paths);
+
+    boolean existsByPerms(String perms);
+
+    Optional<SysMenu> findFirstByMenuNameAndMenuTypeAndParentId(String menuName, String menuType, Long parentId);
 
     @Query(value = """
             SELECT DISTINCT M.PERMS

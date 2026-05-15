@@ -22,6 +22,8 @@ public interface SysRoleRepository extends JpaRepository<SysRole, Long>, JpaSpec
 
     long countByIdIn(Collection<Long> ids);
 
+    java.util.Optional<SysRole> findByRoleKey(String roleKey);
+
     @Query(value = """
             SELECT R.ROLE_KEY
             FROM SYS_USER_ROLE UR

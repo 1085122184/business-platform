@@ -1,6 +1,9 @@
 package com.cjx.decision.service;
 
 import com.cjx.decision.dto.system.role.MenuTreeNodeResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditFixResponse;
+import com.cjx.decision.dto.system.role.PermissionAuditRequest;
+import com.cjx.decision.dto.system.role.PermissionAuditResponse;
 import com.cjx.decision.dto.system.role.RolePageResponse;
 import com.cjx.decision.dto.system.role.RoleQueryRequest;
 import com.cjx.decision.dto.system.role.RoleSaveRequest;
@@ -38,4 +41,8 @@ public interface SystemRoleService {
     List<Long> getRoleMenuIds(Long roleId);
 
     boolean saveRoleMenus(Long roleId, List<Long> menuIds);
+
+    PermissionAuditResponse auditRoutePermissions(PermissionAuditRequest request);
+
+    PermissionAuditFixResponse fixMissingRoutePermissions(PermissionAuditRequest request);
 }
