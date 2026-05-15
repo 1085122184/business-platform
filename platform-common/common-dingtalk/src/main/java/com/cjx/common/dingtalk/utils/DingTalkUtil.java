@@ -8,7 +8,10 @@ import com.cjx.common.dingtalk.config.DingTalkCacheConfig;
 import com.cjx.common.dingtalk.config.DingTalkConfig;
 import com.cjx.common.dingtalk.dto.DingTalkApiResponse;
 import com.cjx.common.dingtalk.dto.DingTalkDeptInfo;
+import com.cjx.common.dingtalk.dto.DingTalkUserPageResult;
 import com.cjx.common.dingtalk.dto.DingTalkUserInfo;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -394,6 +398,61 @@ public class DingTalkUtil {
         Map<String, Object> params = new HashMap<>();
         params.put("dept_id", deptId);
         return okHttpUtil.postObject(url, params);
+    }
+
+    /**
+     * Get direct child departments.
+     */
+    public List<DingTalkDeptInfo> listSubDepartments(Long deptId) throws Exception {
+        String json = getDepartmentList(deptId);
+        JsonNode root = OBJECT_MAPPER.readTree(json);
+        JsonNode errCode = root.path("errcode");
+        if (!errCode.isNumber() || errCode.asInt() != 0) {
+            throw new RuntimeException("鑾峰彇閮ㄩ棬鍒楄〃澶辫触: " + root.path("errmsg").asText());
+        }
+
+        JsonNode result = root.path("result");
+        if (result.isArray()) {
+            return OBJECT_MAPPER.convertValue(result, new TypeReference<List<DingTalkDeptInfo>>() {
+            });
+        }
+        JsonNode deptIdList = result.path("dept_id_list");
+        if (!deptIdList.isArray() || deptIdList.size() == 0) {
+            return Collections.emptyList();
+        }
+
+        List<DingTalkDeptInfo> departments = new ArrayList<>();
+        for (JsonNode childDeptIdNode : deptIdList) {
+            Long childDeptId = childDeptIdNode.isNumber() ? childDeptIdNode.asLong() : null;
+            if (childDeptId == null) {
+                continue;
+            }
+            departments.add(getDepartmentInfoDto(childDeptId));
+        }
+        return departments;
+    }
+
+    /**
+     * Get a page of users in a department. DingTalk only returns direct department users.
+     */
+    public DingTalkUserPageResult listDepartmentUsers(Long deptId, Long cursor, Integer size) throws Exception {
+        String accessToken = getAccessToken();
+        String url = dingTalkConfig.getApiUrl() + "/topapi/v2/user/list?access_token=" + accessToken;
+        Map<String, Object> params = new HashMap<>();
+        params.put("dept_id", deptId);
+        params.put("cursor", cursor == null ? 0L : cursor);
+        params.put("size", size == null ? 50 : Math.min(Math.max(size, 1), 100));
+
+        String result = okHttpUtil.postObject(url, params);
+        DingTalkApiResponse<DingTalkUserPageResult> response = OBJECT_MAPPER.readValue(result,
+                OBJECT_MAPPER.getTypeFactory().constructParametricType(
+                        DingTalkApiResponse.class, DingTalkUserPageResult.class));
+        if (response.isSuccess()) {
+            DingTalkUserPageResult page = response.getResult();
+            return page == null ? new DingTalkUserPageResult() : page;
+        }
+        log.error("鑾峰彇閮ㄩ棬鐢ㄦ埛鍒楄〃澶辫触: {}", result);
+        throw new RuntimeException("鑾峰彇閮ㄩ棬鐢ㄦ埛鍒楄〃澶辫触: " + response.getErrMsg());
     }
 
     // ==================== 登录授权 ====================

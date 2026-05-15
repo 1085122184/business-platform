@@ -75,3 +75,7 @@ app:
     appId: ${DINGTALK_APP_ID:}
     scanAppSecret: ${DINGTALK_SCAN_APP_SECRET:}
     oauthRedirectUri: ${DINGTALK_OAUTH_REDIRECT_URI:http://192.168.200.40/login}
+
+system:
+  user:
+    dingtalk-import-default-password: ${DINGTALK_IMPORT_DEFAULT_PASSWORD:11111111}
