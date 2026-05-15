@@ -46,7 +46,7 @@ cache:
         docker image prune -f
       "
 
-deploy_backend_auth:
+deploy_backend_auth_53:
   extends: .deploy_backend_template
   variables:
     DEPLOY_HOST: "192.168.200.53"
@@ -57,9 +57,9 @@ deploy_backend_auth:
     - if: '$CI_COMMIT_BRANCH == "auth_branch"'
       when: manual
   environment:
-    name: auth-prod
+    name: auth-prod-53
 
-deploy_backend_without_auth:
+deploy_backend_auth_40:
   extends: .deploy_backend_template
   variables:
     DEPLOY_HOST: "192.168.200.40"
@@ -70,4 +70,4 @@ deploy_backend_without_auth:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
   environment:
-    name: noauth-prod
+    name: auth-prod-40
