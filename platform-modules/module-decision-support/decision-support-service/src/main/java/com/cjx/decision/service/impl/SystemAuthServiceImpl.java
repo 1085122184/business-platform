@@ -49,7 +49,9 @@ public class SystemAuthServiceImpl implements SystemAuthService {
 
     private static final String NORMAL_DEL_FLAG = "0";
     private static final String LOGIN_TICKET_CACHE_PREFIX = "login-ticket:";
-    private static final int LOGIN_TICKET_EXPIRES_IN_SECONDS = 120;
+    private static final String CONSUMED_LOGIN_TICKET_CACHE_PREFIX = "login-ticket-consumed:";
+    private static final int LOGIN_TICKET_EXPIRES_IN_SECONDS = 300;
+    private static final int LOGIN_TICKET_REPLAY_WINDOW_SECONDS = 30;
     private final SysUserRepository sysUserRepository;
     private final SysRoleRepository sysRoleRepository;
     private final SysMenuRepository sysMenuRepository;
@@ -59,6 +61,7 @@ public class SystemAuthServiceImpl implements SystemAuthService {
     private final PasswordEncoder passwordEncoder;
     private final CaffeineCacheService caffeineCacheService;
     private final DingTalkUtil dingTalkUtil;
+    private final Object loginTicketLock = new Object();
 
     @Override
     public LoginResponse login(LoginRequest request, HttpServletRequest httpServletRequest) {
@@ -162,24 +165,21 @@ public class SystemAuthServiceImpl implements SystemAuthService {
     @Override
     public LoginResponse consumeLoginTicket(LoginTicketRequest request, HttpServletRequest httpServletRequest) {
         String ticket = request.getTicket().trim();
-        String cacheKey = loginTicketCacheKey(ticket);
-        LoginTicketPayload payload = caffeineCacheService.get(CacheType.TOKEN, cacheKey, LoginTicketPayload.class);
-        caffeineCacheService.remove(CacheType.TOKEN, cacheKey);
         String loginIp = resolveClientIp(httpServletRequest);
         String userAgent = resolveUserAgent(httpServletRequest);
+        LoginTicketConsumeResult consumeResult = resolveLoginTicket(ticket, loginIp, userAgent);
 
-        if (payload == null || payload.expiresAt().isBefore(LocalDateTime.now())) {
-            throw unauthorized("login-ticket", null, loginIp, userAgent, "login ticket expired or invalid");
-        }
-
-        SysUser user = sysUserRepository.findByIdAndDelFlag(payload.userId(), NORMAL_DEL_FLAG)
-                .orElseThrow(() -> unauthorized("login-ticket", payload.userId(), loginIp, userAgent, "user does not exist"));
+        SysUser user = sysUserRepository.findByIdAndDelFlag(consumeResult.userId(), NORMAL_DEL_FLAG)
+                .orElseThrow(() -> unauthorized("login-ticket", consumeResult.userId(), loginIp, userAgent, "user does not exist"));
         if (!Integer.valueOf(1).equals(user.getStatus())) {
             writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 0, "user disabled");
             throw new BusinessException(String.valueOf(ResultCode.USER_DISABLED.getCode()), "user disabled");
         }
 
-        writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 1, "one-time login ticket consumed");
+        String loginMessage = consumeResult.replayed()
+                ? "one-time login ticket replayed within tolerance window"
+                : "one-time login ticket consumed";
+        writeLoginLog(user.getId(), user.getUsername(), loginIp, userAgent, 1, loginMessage);
         return buildLoginResponse(user, loginIp);
     }
 
@@ -270,6 +270,46 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         response.setTicket(ticket);
         response.setExpiresIn(LOGIN_TICKET_EXPIRES_IN_SECONDS);
         return response;
+    }
+
+    private LoginTicketConsumeResult resolveLoginTicket(String ticket, String loginIp, String userAgent) {
+        String cacheKey = loginTicketCacheKey(ticket);
+        String consumedCacheKey = consumedLoginTicketCacheKey(ticket);
+        String clientFingerprint = clientFingerprint(loginIp, userAgent);
+
+        synchronized (loginTicketLock) {
+            LocalDateTime now = LocalDateTime.now();
+            LoginTicketPayload payload = caffeineCacheService.get(CacheType.TOKEN, cacheKey, LoginTicketPayload.class);
+            if (payload != null) {
+                caffeineCacheService.remove(CacheType.TOKEN, cacheKey);
+                if (payload.expiresAt().isBefore(now)) {
+                    throw unauthorized("login-ticket", payload.userId(), loginIp, userAgent, "login ticket expired or invalid");
+                }
+
+                LocalDateTime replayExpiresAt = now.plusSeconds(LOGIN_TICKET_REPLAY_WINDOW_SECONDS);
+                caffeineCacheService.put(
+                        CacheType.TOKEN,
+                        consumedCacheKey,
+                        new ConsumedLoginTicketPayload(payload.userId(), replayExpiresAt, clientFingerprint)
+                );
+                return new LoginTicketConsumeResult(payload.userId(), false);
+            }
+
+            ConsumedLoginTicketPayload consumedPayload = caffeineCacheService.get(
+                    CacheType.TOKEN,
+                    consumedCacheKey,
+                    ConsumedLoginTicketPayload.class
+            );
+            if (consumedPayload != null) {
+                if (consumedPayload.replayExpiresAt().isBefore(now)) {
+                    caffeineCacheService.remove(CacheType.TOKEN, consumedCacheKey);
+                } else if (consumedPayload.clientFingerprint().equals(clientFingerprint)) {
+                    return new LoginTicketConsumeResult(consumedPayload.userId(), true);
+                }
+            }
+        }
+
+        throw unauthorized("login-ticket", null, loginIp, userAgent, "login ticket expired or invalid");
     }
 
     private SysUser resolveDingTalkUser(String dingUserId,
@@ -384,6 +424,20 @@ public class SystemAuthServiceImpl implements SystemAuthService {
         return LOGIN_TICKET_CACHE_PREFIX + ticket;
     }
 
+    private String consumedLoginTicketCacheKey(String ticket) {
+        return CONSUMED_LOGIN_TICKET_CACHE_PREFIX + ticket;
+    }
+
+    private String clientFingerprint(String loginIp, String userAgent) {
+        return (loginIp == null ? "" : loginIp) + "|" + (userAgent == null ? "" : userAgent);
+    }
+
     private record LoginTicketPayload(Long userId, LocalDateTime expiresAt) {
+    }
+
+    private record ConsumedLoginTicketPayload(Long userId, LocalDateTime replayExpiresAt, String clientFingerprint) {
+    }
+
+    private record LoginTicketConsumeResult(Long userId, boolean replayed) {
     }
 }
