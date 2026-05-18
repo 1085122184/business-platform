@@ -11,5 +11,9 @@ public class ProductionOverviewDTO {
     private ProductionMetricDTO outputMaterialGroups;
     private ProductionMetricDTO rawMaterialKinds;
     private ProductionThroughputDTO throughput;
+    private ProductionEnergyOverviewDTO energy;
+    private ProductionStartupShutdownOverviewDTO startupShutdown;
+    private ProductionSafetyOverviewDTO safety;
+    private ProductionEnvironmentOverviewDTO environment;
     private String latestInventoryTime;
 }

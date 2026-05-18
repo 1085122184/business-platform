@@ -4,13 +4,23 @@ import com.cjx.common.core.enums.CacheType;
 import com.cjx.common.core.utils.CaffeineCacheService;
 import com.cjx.decision.annotation.AutoWarmUp;
 import com.cjx.decision.dto.production.ProductionDetailPageDTO;
+import com.cjx.decision.dto.production.ProductionEnergyDetailDTO;
+import com.cjx.decision.dto.production.ProductionEnergyOverviewDTO;
+import com.cjx.decision.dto.production.ProductionEnvironmentOverviewDTO;
+import com.cjx.decision.dto.production.ProductionHighRiskWorkDetailDTO;
 import com.cjx.decision.dto.production.ProductionMetricDTO;
 import com.cjx.decision.dto.production.ProductionOverviewDTO;
 import com.cjx.decision.dto.production.ProductionOutputDetailDTO;
 import com.cjx.decision.dto.production.ProductionRankItemDTO;
 import com.cjx.decision.dto.production.ProductionRawConsumptionDetailDTO;
+import com.cjx.decision.dto.production.ProductionSafetyOverviewDTO;
+import com.cjx.decision.dto.production.ProductionStartupShutdownDetailDTO;
+import com.cjx.decision.dto.production.ProductionStartupShutdownOverviewDTO;
+import com.cjx.decision.dto.production.ProductionToxicGasDetailDTO;
 import com.cjx.decision.dto.production.ProductionThroughputDTO;
 import com.cjx.decision.dto.production.ProductionTransportDetailDTO;
+import com.cjx.decision.dto.production.ProductionWasteDetailDTO;
+import com.cjx.decision.dto.production.ProductionWaterGasDetailDTO;
 import com.cjx.decision.repository.frorcl.ProductionRepository;
 import com.cjx.decision.service.ProductionService;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +62,13 @@ public class ProductionServiceImpl implements ProductionService {
         Map<String, Object> raw = productionRepository.getRawConsumptionOverview(targetDate);
         Map<String, Object> inventory = productionRepository.getProductInventoryOverview();
         Map<String, Object> throughputRaw = productionRepository.getThroughputOverview(targetDate);
+        Map<String, Object> energy = productionRepository.getEnergyOverview(targetDate);
+        Map<String, Object> startupShutdownRaw = productionRepository.getStartupShutdownOverview();
+        Map<String, Object> rectification = productionRepository.getSafetyRectificationOverview(String.valueOf(date.getYear()));
+        Map<String, Object> highRisk = productionRepository.getHighRiskWorkOverview(targetDate);
+        Map<String, Object> toxicGas = productionRepository.getToxicGasOverview(targetDate);
+        Map<String, Object> waste = productionRepository.getWasteOverview(targetDate);
+        Map<String, Object> waterGas = productionRepository.getWaterGasOverview(targetDate);
 
         ProductionOverviewDTO dto = new ProductionOverviewDTO();
         dto.setDate(targetDate);
@@ -68,6 +85,55 @@ public class ProductionServiceImpl implements ProductionService {
         throughput.setVehicleCount(decimal(throughputRaw, "VEHICLE_COUNT"));
         throughput.setUnit("吨");
         dto.setThroughput(throughput);
+        dto.setEnergy(buildEnergyOverview(energy));
+        dto.setStartupShutdown(buildStartupShutdownOverview(startupShutdownRaw));
+        dto.setSafety(buildSafetyOverview(rectification, highRisk, toxicGas));
+        dto.setEnvironment(buildEnvironmentOverview(waste, waterGas));
+        return dto;
+    }
+
+    private ProductionEnergyOverviewDTO buildEnergyOverview(Map<String, Object> row) {
+        ProductionEnergyOverviewDTO dto = new ProductionEnergyOverviewDTO();
+        dto.setWater(metric("水", decimal(row, "WATER"), stringValue(row, "WATER_UNIT"), "能源消耗"));
+        dto.setElectricity(metric("电", decimal(row, "ELECTRICITY"), stringValue(row, "ELECTRICITY_UNIT"), "能源消耗"));
+        dto.setRefrigeration(metric("制冷", decimal(row, "REFRIGERATION"), stringValue(row, "REFRIGERATION_UNIT"), "能源消耗"));
+        dto.setSteam(metric("蒸汽", decimal(row, "STEAM"), stringValue(row, "STEAM_UNIT"), "能源消耗"));
+        dto.setNaturalGas(metric("天然气", decimal(row, "NATURAL_GAS"), stringValue(row, "NATURAL_GAS_UNIT"), "能源消耗"));
+        dto.setHydrogen(metric("氢气", decimal(row, "HYDROGEN"), stringValue(row, "HYDROGEN_UNIT"), "能源消耗"));
+        dto.setPureWater(metric("纯水", decimal(row, "PURE_WATER"), stringValue(row, "PURE_WATER_UNIT"), "能源消耗"));
+        return dto;
+    }
+
+    private ProductionStartupShutdownOverviewDTO buildStartupShutdownOverview(Map<String, Object> row) {
+        ProductionStartupShutdownOverviewDTO dto = new ProductionStartupShutdownOverviewDTO();
+        dto.setStartupCount(decimal(row, "STARTUP_COUNT"));
+        dto.setShutdownCount(decimal(row, "SHUTDOWN_COUNT"));
+        dto.setTotalCount(decimal(row, "TOTAL_COUNT"));
+        dto.setUnit("次");
+        return dto;
+    }
+
+    private ProductionSafetyOverviewDTO buildSafetyOverview(
+            Map<String, Object> rectification, Map<String, Object> highRisk, Map<String, Object> toxicGas) {
+        BigDecimal riskCount = decimal(rectification, "RISK_COUNT");
+        BigDecimal dealCount = decimal(rectification, "DEAL_COUNT");
+        ProductionSafetyOverviewDTO dto = new ProductionSafetyOverviewDTO();
+        dto.setProcessAlarm(metric("工艺报警数", null, "次", "暂无数据源"));
+        dto.setEquipmentAlarm(metric("设备报警数", null, "次", "暂无数据源"));
+        dto.setHighRiskWork(metric("高危作业", decimal(highRisk, "WORK_COUNT"), "日", "高危作业数"));
+        dto.setToxicGasAlarm(metric("可燃有毒报警数", decimal(toxicGas, "ALARM_COUNT"), "次", "有毒气体报警"));
+        dto.setRiskCount(metric("隐患总数", riskCount, "项", "安全整改"));
+        dto.setDealCount(metric("整改完成数", dealCount, "项", "安全整改"));
+        dto.setRectificationRate(percent(dealCount, riskCount));
+        return dto;
+    }
+
+    private ProductionEnvironmentOverviewDTO buildEnvironmentOverview(Map<String, Object> waste, Map<String, Object> waterGas) {
+        ProductionEnvironmentOverviewDTO dto = new ProductionEnvironmentOverviewDTO();
+        dto.setExhaustEmissionPoints(metric("废气异常排放点", decimal(waterGas, "EXHAUST_POINTS"), "个", "按子点位去重"));
+        dto.setWastewaterEmissionPoints(metric("废水异常排放点", decimal(waterGas, "WASTEWATER_POINTS"), "个", "按子点位去重"));
+        dto.setTotalWaterGasPoints(metric("废气废水异常点", decimal(waterGas, "TOTAL_POINTS"), "个", "按子点位去重"));
+        dto.setHazardousWaste(metric("固废产生量（不含自行处置）", decimal(waste, "WASTE_OUTPUT"), "吨", "危废产生量"));
         return dto;
     }
 
@@ -163,6 +229,120 @@ public class ProductionServiceImpl implements ProductionService {
         result.setList(productionRepository.getTransportDetails(targetDate, category, keyword, startRow, startRow + safePageSize)
                 .stream()
                 .map(this::toTransportDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionEnergyDetailDTO> getEnergyDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionEnergyDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countEnergyDetails(targetDate, keyword));
+        result.setList(productionRepository.getEnergyDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toEnergyDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionStartupShutdownDetailDTO> getStartupShutdownDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionStartupShutdownDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countStartupShutdownDetails(targetDate, keyword));
+        result.setList(productionRepository.getStartupShutdownDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toStartupShutdownDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionHighRiskWorkDetailDTO> getHighRiskWorkDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionHighRiskWorkDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countHighRiskWorkDetails(targetDate, keyword));
+        result.setList(productionRepository.getHighRiskWorkDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toHighRiskWorkDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionToxicGasDetailDTO> getToxicGasDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionToxicGasDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countToxicGasDetails(targetDate, keyword));
+        result.setList(productionRepository.getToxicGasDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toToxicGasDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionWasteDetailDTO> getWasteDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionWasteDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countWasteDetails(targetDate, keyword));
+        result.setList(productionRepository.getWasteDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toWasteDetail)
+                .toList());
+        return result;
+    }
+
+    @Override
+    public ProductionDetailPageDTO<ProductionWaterGasDetailDTO> getWaterGasDetails(
+            LocalDate date, String keyword, Integer page, Integer pageSize) {
+        int safePage = safePage(page);
+        int safePageSize = safePageSize(pageSize);
+        int startRow = (safePage - 1) * safePageSize;
+        String targetDate = date.format(DF);
+
+        ProductionDetailPageDTO<ProductionWaterGasDetailDTO> result = new ProductionDetailPageDTO<>();
+        result.setPage(safePage);
+        result.setPageSize(safePageSize);
+        result.setTotal(productionRepository.countWaterGasDetails(targetDate, keyword));
+        result.setList(productionRepository.getWaterGasDetails(targetDate, keyword, startRow, startRow + safePageSize)
+                .stream()
+                .map(this::toWaterGasDetail)
                 .toList());
         return result;
     }
@@ -267,6 +447,81 @@ public class ProductionServiceImpl implements ProductionService {
         return item;
     }
 
+    private ProductionEnergyDetailDTO toEnergyDetail(Map<String, Object> row) {
+        ProductionEnergyDetailDTO item = new ProductionEnergyDetailDTO();
+        item.setInputDate(stringValue(row, "INPUT_DATE"));
+        item.setPostingDate(stringValue(row, "POSTING_DATE"));
+        item.setOrderNo(stringValue(row, "ORDER_NO"));
+        item.setFactory(stringValue(row, "FACTORY"));
+        item.setWater(decimal(row, "WATER"));
+        item.setWaterUnit(stringValue(row, "WATER_UNIT"));
+        item.setElectricity(decimal(row, "ELECTRICITY"));
+        item.setElectricityUnit(stringValue(row, "ELECTRICITY_UNIT"));
+        item.setRefrigeration(decimal(row, "REFRIGERATION"));
+        item.setRefrigerationUnit(stringValue(row, "REFRIGERATION_UNIT"));
+        item.setSteam(decimal(row, "STEAM"));
+        item.setSteamUnit(stringValue(row, "STEAM_UNIT"));
+        item.setNaturalGas(decimal(row, "NATURAL_GAS"));
+        item.setNaturalGasUnit(stringValue(row, "NATURAL_GAS_UNIT"));
+        item.setHydrogen(decimal(row, "HYDROGEN"));
+        item.setHydrogenUnit(stringValue(row, "HYDROGEN_UNIT"));
+        item.setPureWater(decimal(row, "PURE_WATER"));
+        item.setPureWaterUnit(stringValue(row, "PURE_WATER_UNIT"));
+        return item;
+    }
+
+    private ProductionStartupShutdownDetailDTO toStartupShutdownDetail(Map<String, Object> row) {
+        ProductionStartupShutdownDetailDTO item = new ProductionStartupShutdownDetailDTO();
+        item.setSourceRn(stringValue(row, "SOURCE_RN"));
+        item.setCompany(stringValue(row, "COMPANY"));
+        item.setDevice(stringValue(row, "DEVICE"));
+        item.setTime(stringValue(row, "TIME_VALUE"));
+        item.setDev(stringValue(row, "DEV_VALUE"));
+        item.setStandard(stringValue(row, "STANDARD_VALUE"));
+        item.setSort(stringValue(row, "SORT_VALUE"));
+        item.setValue(stringValue(row, "VALUE_TEXT"));
+        return item;
+    }
+
+    private ProductionHighRiskWorkDetailDTO toHighRiskWorkDetail(Map<String, Object> row) {
+        ProductionHighRiskWorkDetailDTO item = new ProductionHighRiskWorkDetailDTO();
+        item.setWorkDate(stringValue(row, "WORK_DATE"));
+        item.setCompanyName(stringValue(row, "COMPANY_NAME"));
+        item.setWorkCount(decimal(row, "WORK_COUNT"));
+        return item;
+    }
+
+    private ProductionToxicGasDetailDTO toToxicGasDetail(Map<String, Object> row) {
+        ProductionToxicGasDetailDTO item = new ProductionToxicGasDetailDTO();
+        item.setAlarmDate(stringValue(row, "ALARM_DATE"));
+        item.setCompany(stringValue(row, "COMPANY"));
+        item.setAlarmCount(decimal(row, "ALARM_COUNT"));
+        return item;
+    }
+
+    private ProductionWasteDetailDTO toWasteDetail(Map<String, Object> row) {
+        ProductionWasteDetailDTO item = new ProductionWasteDetailDTO();
+        item.setPostingDate(stringValue(row, "POSTING_DATE"));
+        item.setCompanyCode(stringValue(row, "COMPANY_CODE"));
+        item.setCompanyName(stringValue(row, "COMPANY_NAME"));
+        item.setCompany(stringValue(row, "COMPANY"));
+        item.setWasteCode(stringValue(row, "WASTE_CODE"));
+        item.setWasteName(stringValue(row, "WASTE_NAME"));
+        item.setOutput(decimal(row, "OUTPUT_VALUE"));
+        return item;
+    }
+
+    private ProductionWaterGasDetailDTO toWaterGasDetail(Map<String, Object> row) {
+        ProductionWaterGasDetailDTO item = new ProductionWaterGasDetailDTO();
+        item.setPointCode(stringValue(row, "POINT_CODE"));
+        item.setPointName(stringValue(row, "POINT_NAME"));
+        item.setSubName(stringValue(row, "SUB_NAME"));
+        item.setItemDesc(stringValue(row, "ITEM_DESC"));
+        item.setGenerateTime(stringValue(row, "GENERATE_TIME_VALUE"));
+        item.setGroupTime(stringValue(row, "GROUP_TIME"));
+        return item;
+    }
+
     private int safePage(Integer page) {
         return page == null || page < 1 ? 1 : page;
     }
@@ -276,6 +531,17 @@ public class ProductionServiceImpl implements ProductionService {
             return 20;
         }
         return Math.min(pageSize, 100);
+    }
+
+    private ProductionMetricDTO metric(String label, BigDecimal value, String unit, String description) {
+        return new ProductionMetricDTO(label, value, unit, description);
+    }
+
+    private BigDecimal percent(BigDecimal numerator, BigDecimal denominator) {
+        if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return numerator.multiply(BigDecimal.valueOf(100)).divide(denominator, 2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal decimal(Map<String, Object> row, String key) {
